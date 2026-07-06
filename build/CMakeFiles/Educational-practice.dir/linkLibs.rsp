@@ -1,0 +1,1 @@
+  -L"C:/codes/Genetic_algorithm/Educational-practice/pack_for_gui/glfw/lib-mingw-w64"  -Wl,-Bstatic -lglfw3 -Wl,-Bdynamic -lopengl32 -lgdi32 -luser32 -lkernel32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
