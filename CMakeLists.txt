@@ -8,14 +8,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(${PROJECT_NAME} main.cpp)
 
 # --- ImGui (исходники) ---
-file(GLOB IMGUI_SOURCES "pack_for_gui/imgui/*.cpp")
-file(GLOB IMGUI_BACKEND_SOURCES "pack_for_gui/imgui/backends/imgui_impl_glfw.cpp" "pack_for_gui/imgui/backends/imgui_impl_opengl3.cpp")
+file(GLOB IMGUI_SOURCES "pack_for_gui/imgui_lib/*.cpp")
+file(GLOB IMGUI_BACKEND_SOURCES "pack_for_gui/imgui_lib/backends/imgui_impl_glfw.cpp" "pack_for_gui/imgui_lib/backends/imgui_impl_opengl3.cpp")
 target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
+
 
 # --- Пути к заголовкам ImGui и GLFW ---
 target_include_directories(${PROJECT_NAME} PRIVATE
-    "pack_for_gui/imgui"
-    "pack_for_gui/imgui/backends"
+    "pack_for_gui/imgui_lib"
+    "pack_for_gui/imgui_lib/backends"
     "pack_for_gui/glfw/include"          # здесь заголовки GLFW
 )
 

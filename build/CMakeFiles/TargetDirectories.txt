@@ -1,3 +1,0 @@
-C:/codes/Genetic_algorithm/Educational-practice/build/CMakeFiles/Educational-practice.dir
-C:/codes/Genetic_algorithm/Educational-practice/build/CMakeFiles/edit_cache.dir
-C:/codes/Genetic_algorithm/Educational-practice/build/CMakeFiles/rebuild_cache.dir

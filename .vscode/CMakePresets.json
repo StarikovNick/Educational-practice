@@ -2,14 +2,14 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "mingw64",
-      "displayName": "MinGW64",
-      "description": "Use MinGW64 compiler",
+      "name": "minGW",
+      "displayName": "MinGW",
+      "description": "Use MinGW0 compiler",
       "generator": "MinGW Makefiles",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "C:/mingw64/bin/gcc.exe",
-        "CMAKE_CXX_COMPILER": "C:/mingw64/bin/g++.exe"
+        "CMAKE_C_COMPILER": "C:/minGW/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/minGW/bin/g++.exe"
       }
     }
   ]
