@@ -30,6 +30,8 @@ bool loadFromFile(const std::string& filename, Graph& outGraph) {
         outGraph.edges.push_back({u, v, static_cast<double>(w)});
     }
 
+    std::cout << "Файл успешно считан" << std::endl;
+
     file.close();
     return true;
 }

@@ -4,31 +4,30 @@ project(Educational-practice)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Исполняемый файл
-add_executable(${PROJECT_NAME} main.cpp GraphData.cpp)
+add_executable(${PROJECT_NAME} main.cpp data/GraphData.cpp gui/gui.cpp gui/globals.cpp gui/g_alg.cpp)
 
-# --- ImGui (исходники) ---
-file(GLOB IMGUI_SOURCES "pack_for_gui/imgui_lib/*.cpp")
-file(GLOB IMGUI_BACKEND_SOURCES "pack_for_gui/imgui_lib/backends/imgui_impl_glfw.cpp" "pack_for_gui/imgui_lib/backends/imgui_impl_opengl3.cpp")
+file(GLOB IMGUI_SOURCES "lib_for_gui/imgui_lib/*.cpp")
+file(GLOB IMGUI_BACKEND_SOURCES "lib_for_gui/imgui_lib/backends/imgui_impl_glfw.cpp" "lib_for_gui/imgui_lib/backends/imgui_impl_opengl3.cpp")
 target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
 
 
-# --- Пути к заголовкам ImGui и GLFW ---
+file(GLOB IMPLOT_SOURCES "lib_for_gui/implot/implot.cpp" "lib_for_gui/implot/implot_items.cpp")
+target_sources(${PROJECT_NAME} PRIVATE ${IMPLOT_SOURCES})
+
 target_include_directories(${PROJECT_NAME} PRIVATE
-    "pack_for_gui/imgui_lib"
-    "pack_for_gui/imgui_lib/backends"
-    "pack_for_gui/glfw/include"
+    "lib_for_gui/imgui_lib"
+    "lib_for_gui/imgui_lib/backends"
+    "lib_for_gui/glfw/include"
+    "lib_for_gui/implot"
+    "data"
+    "core"
+    "gui"       
 )
 
-# --- Путь к библиотекам GLFW ---
 target_link_directories(${PROJECT_NAME} PRIVATE
-    "pack_for_gui/glfw/lib-mingw-w64"  
+    "lib_for_gui/glfw/lib-mingw-w64"  
 )
 
-# --- Линковка ---
-# Удалите или закомментируйте старые строки с target_link_directories и target_link_libraries для GLFW
-
-# Добавьте это:
 target_link_libraries(${PROJECT_NAME} PRIVATE
     libglfw3.a
     opengl32
