@@ -13,26 +13,21 @@ file(GLOB IMGUI_BACKEND_SOURCES "pack_for_gui/imgui_lib/backends/imgui_impl_glfw
 target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
 
 
-# --- Пути к заголовкам ImGui и GLFW ---
+file(GLOB IMPLOT_SOURCES "pack_for_gui/implot/implot.cpp" "pack_for_gui/implot/implot_items.cpp")
+target_sources(${PROJECT_NAME} PRIVATE ${IMPLOT_SOURCES})
+
+# --- Пути к заголовкам ---
 target_include_directories(${PROJECT_NAME} PRIVATE
     "pack_for_gui/imgui_lib"
     "pack_for_gui/imgui_lib/backends"
-<<<<<<< HEAD
-    "pack_for_gui/glfw/include"         
-=======
-    "pack_for_gui/glfw/include"          # здесь заголовки GLFW
->>>>>>> 1a3da97909f8362877d4eb042cf321ee1d71c966
+    "pack_for_gui/glfw/include"
+    "pack_for_gui/implot"       
 )
 
-# --- Путь к библиотекам GLFW ---
 target_link_directories(${PROJECT_NAME} PRIVATE
     "pack_for_gui/glfw/lib-mingw-w64"  
 )
 
-# --- Линковка ---
-# Удалите или закомментируйте старые строки с target_link_directories и target_link_libraries для GLFW
-
-# Добавьте это:
 target_link_libraries(${PROJECT_NAME} PRIVATE
     libglfw3.a
     opengl32

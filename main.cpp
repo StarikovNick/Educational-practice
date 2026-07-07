@@ -2,12 +2,12 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
+#include "implot.h" 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <random>
 
-// === Глобальные переменные для имитации состояния ГА ===
 static int vertexCount = 6;
 static int edgeCount = 9;
 static int populationSize = 20;
@@ -24,14 +24,12 @@ static bool isAlgorithmPaused = false;
 static bool isAlgorithmFinished = false;
 static std::string statusMessage = "Готов к работе";
 
-// Данные для графика (история лучшего веса по поколениям)
 static std::vector<float> weightHistory;
 
-// Имитация популяции (для отображения)
 static std::vector<std::string> populationDisplay;
 static std::string bestChromosome = "{0, 3, 5, 7, 8}";
 
-// === Функция отрисовки визуализации графа (заглушка) ===
+
 void drawGraphVisualization() {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
@@ -40,24 +38,34 @@ void drawGraphVisualization() {
     drawList->AddRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), 
                       IM_COL32(80, 80, 80, 255), 4.0f);
     
-    // Текст-заглушка
-    drawList->AddText(ImVec2(canvasPos.x + 20, canvasPos.y + 20), 
-                      IM_COL32(200, 200, 200, 255), 
-                      "Визуализация графа\n(вершины и рёбра)\nТекущее лучшее дерево подсвечено");
+    const int n = 7;
+    const float PI = 3.14159265359f;
+
+    ImVec2 center = ImVec2(canvasPos.x + canvasSize.x * 0.5f, canvasPos.y + canvasSize.y * 0.5f);
+    float radius = std::min(canvasSize.x, canvasSize.y) * 0.4f;
     
-    // Имитация вершин
-    for (int i = 0; i < 6; i++) {
-        float x = canvasPos.x + 60 + i * 70;
-        float y = canvasPos.y + 80 + (i % 2) * 60;
-        drawList->AddCircleFilled(ImVec2(x, y), 20, IM_COL32(70, 150, 255, 255));
-        drawList->AddText(ImVec2(x - 8, y - 10), IM_COL32(255, 255, 255, 255), 
-                          std::to_string(i).c_str());
+    std::vector<ImVec2> positions(n);
+    for (int i = 0; i < n; ++i) {
+        float angle = 2.0f * PI * i / n - PI / 2.0f; // начинаем с верхней точки (12 часов)
+        positions[i] = ImVec2(center.x + radius * cosf(angle), center.y + radius * sinf(angle));
+    }
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            drawList->AddLine(positions[i], positions[j], IM_COL32(180, 180, 180, 255), 2.0f);
+        }
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        drawList->AddCircleFilled(positions[i], 10.0f, IM_COL32(70, 150, 255, 255));
+
+        ImVec2 textPos = ImVec2(positions[i].x - 20.0f, positions[i].y - 10.0f);
+        drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), std::to_string(i).c_str());
     }
 }
 
-// === Основная функция ===
+
 int main() {
-    // Инициализация GLFW
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -66,20 +74,19 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    // Инициализация ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();    
+
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
 
-    // Шрифт с кириллицей
     ImFont* font = io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/arial.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
     if (!font) io.Fonts->AddFontDefault();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    // === Главный цикл ===
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -87,14 +94,12 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // ===========================================================
-        // 1. ЛЕВАЯ ПАНЕЛЬ: Управление и параметры
-        // ===========================================================
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
+
+        //Управление и параметры
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(350, 400), ImGuiCond_Always);
         ImGui::Begin("Управление", nullptr, ImGuiWindowFlags_NoResize);
 
-        // --- Блок: Данные графа ---
         ImGui::Text("Данные графа");
         ImGui::Separator();
         if (ImGui::Button("Загрузить из файла")) {
@@ -109,26 +114,12 @@ int main() {
         }
 
         ImGui::Spacing();
-        ImGui::Text("Ручное добавление ребра:");
-        static int v1 = 0, v2 = 1, weight = 1;
-        ImGui::InputInt("Вершина 1", &v1);
-        ImGui::InputInt("Вершина 2", &v2);
-        ImGui::InputInt("Вес", &weight);
-        if (ImGui::Button("Добавить ребро")) {
-            if (v1 != v2 && weight > 0) {
-                statusMessage = "Ребро добавлено (заглушка)";
-                edgeCount++;
-            } else {
-                statusMessage = "Некорректные данные ребра";
-            }
-        }
-
-        ImGui::Spacing();
         ImGui::Separator();
 
-        // --- Блок: Параметры генетического алгоритма ---
         ImGui::Text("Параметры ГА");
         ImGui::Separator();
+        
+        ImGui::PushItemWidth(100);
         ImGui::InputInt("Размер популяции", &populationSize);
         ImGui::InputInt("Размер турнира", &tournamentSize);
         ImGui::SliderFloat("Вероятность скрещивания", &crossoverProb, 0.0f, 1.0f, "%.2f");
@@ -139,7 +130,6 @@ int main() {
         ImGui::Spacing();
         ImGui::Separator();
 
-        // --- Блок: Управление запуском ---
         ImGui::Text("Управление");
         ImGui::Separator();
         
@@ -170,14 +160,12 @@ int main() {
             ImGui::SameLine();
             if (ImGui::Button("Один шаг")) {
                 if (isAlgorithmRunning && !isAlgorithmFinished) {
-                    // Имитация одного поколения
                     currentGeneration++;
                     double newWeight = 50 + rand() % 50;
                     bestWeight = newWeight;
                     bestFitness = 100.0 - newWeight;
                     weightHistory.push_back((float)newWeight);
                     
-                    // Имитация лучшей хромосомы
                     bestChromosome = "{";
                     for (int i = 0; i < vertexCount - 1; i++) {
                         bestChromosome += std::to_string(rand() % edgeCount) + (i < vertexCount - 2 ? ", " : "");
@@ -215,30 +203,23 @@ int main() {
 
         ImGui::End();
 
-        // ===========================================================
-        // 2. ВЕРХНЯЯ ПАНЕЛЬ: Информация
-        // ===========================================================
-        ImGui::SetNextWindowPos(ImVec2(370, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(1020, 180), ImGuiCond_FirstUseEver);
+        // Средняя панель Информация
+        ImGui::SetNextWindowPos(ImVec2(370, 10), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(350, 400), ImGuiCond_Always);
         ImGui::Begin("Информация", nullptr, ImGuiWindowFlags_NoResize);
 
-        ImGui::Columns(3, "infoCols");
+
         ImGui::Text("Вершин: %d", vertexCount);
-        ImGui::NextColumn();
-        ImGui::Text("Рёбер: %d", edgeCount);
-        ImGui::NextColumn();
-        ImGui::Text("Популяция: %d", populationSize);
-        ImGui::NextColumn();
         ImGui::Text("Поколение: %d", currentGeneration);
-        ImGui::NextColumn();
-        ImGui::Text("Лучший вес: %.2f", bestWeight);
-        ImGui::NextColumn();
-        ImGui::Text("Лучшая fitness: %.2f", bestFitness);
-        ImGui::NextColumn();
         ImGui::Text("Лучшая особь: %s", bestChromosome.c_str());
-        ImGui::NextColumn();
+        ImGui::Separator();
+        ImGui::Text("Рёбер: %d", edgeCount);
+        ImGui::Text("Лучший вес: %.2f", bestWeight);
         ImGui::Text("Статус: %s", statusMessage.c_str());
-        ImGui::NextColumn();
+        ImGui::Separator();
+        ImGui::Text("Популяция: %d", populationSize);
+        ImGui::Text("Лучшая МОД по весу: %.2f", bestFitness);
+        ImGui::Separator();
         if (isAlgorithmRunning) {
             ImGui::Text("Состояние: %s", isAlgorithmPaused ? "Пауза" : "Выполнение");
         } else if (isAlgorithmFinished) {
@@ -246,41 +227,57 @@ int main() {
         } else {
             ImGui::Text("Состояние: Ожидание");
         }
-        ImGui::Columns(1);
+        ImGui::Separator();
+
+        ImGui::Text("Ручное добавление ребра:");
+        static int v1 = 0, v2 = 1, weight = 1;
+
+        ImGui::PushItemWidth(150);
+        ImGui::InputInt("Вершина 1", &v1);
+        ImGui::InputInt("Вершина 2", &v2);
+        ImGui::InputInt("Вес", &weight);
+        if (ImGui::Button("Добавить ребро")) {
+            if (v1 != v2 && weight > 0) {
+                statusMessage = "Ребро добавлено (заглушка)";
+                edgeCount++;
+            } else {
+                statusMessage = "Некорректные данные ребра";
+            }
+        }
 
         ImGui::End();
 
-        // ===========================================================
-        // 3. ВИЗУАЛИЗАЦИЯ ГРАФА
-        // ===========================================================
-        ImGui::SetNextWindowPos(ImVec2(370, 200), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(1020, 400), ImGuiCond_FirstUseEver);
+        // Визуализация графа
+        ImGui::SetNextWindowPos(ImVec2(730, 10), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(650, 880), ImGuiCond_Always);
         ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
 
         drawGraphVisualization();
 
         ImGui::End();
 
-        // ===========================================================
-        // 4. ГРАФИК ЭВОЛЮЦИИ
-        // ===========================================================
-        ImGui::SetNextWindowPos(ImVec2(370, 610), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(1020, 250), ImGuiCond_FirstUseEver);
+        // График функции качества
+        ImGui::SetNextWindowPos(ImVec2(10, 420), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(710, 480), ImGuiCond_Always);
         ImGui::Begin("График эволюции (вес МОД по поколениям)", nullptr, ImGuiWindowFlags_NoResize);
 
         ImGui::Text("Лучший вес на каждом поколении");
         if (!weightHistory.empty()) {
-            ImGui::PlotLines("Вес", weightHistory.data(), (int)weightHistory.size(), 
-                             0, nullptr, 0.0f, 100.0f, ImVec2(900, 150));
+            if (!weightHistory.empty()) {
+                if (ImPlot::BeginPlot("##График", ImVec2(550, 380))) {
+                    ImPlot::SetupAxis(ImAxis_X1, "Поколение");
+                    ImPlot::SetupAxis(ImAxis_Y1, "Вес");
+                    ImPlot::PlotLine("Вес МОД", weightHistory.data(), (int)weightHistory.size());
+                    ImPlot::PlotScatter("Вес МОД", weightHistory.data(), (int)weightHistory.size());
+                    ImPlot::EndPlot();
+                }
+            }
         } else {
             ImGui::Text("Нет данных для отображения");
         }
 
         ImGui::End();
 
-        // ===========================================================
-        // Рендеринг
-        // ===========================================================
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -292,7 +289,6 @@ int main() {
         glfwSwapBuffers(window);
     }
 
-    // Очистка
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
