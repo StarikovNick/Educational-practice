@@ -12,11 +12,16 @@ file(GLOB IMGUI_SOURCES "pack_for_gui/imgui_lib/*.cpp")
 file(GLOB IMGUI_BACKEND_SOURCES "pack_for_gui/imgui_lib/backends/imgui_impl_glfw.cpp" "pack_for_gui/imgui_lib/backends/imgui_impl_opengl3.cpp")
 target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
 
+
 # --- Пути к заголовкам ImGui и GLFW ---
 target_include_directories(${PROJECT_NAME} PRIVATE
     "pack_for_gui/imgui_lib"
     "pack_for_gui/imgui_lib/backends"
+<<<<<<< HEAD
     "pack_for_gui/glfw/include"         
+=======
+    "pack_for_gui/glfw/include"          # здесь заголовки GLFW
+>>>>>>> 1a3da97909f8362877d4eb042cf321ee1d71c966
 )
 
 # --- Путь к библиотекам GLFW ---
