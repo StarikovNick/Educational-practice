@@ -1,15 +1,21 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "GraphData.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <random>
+#include <algorithm>
+
+// === Данные графа ===
+static Graph currentGraph;               // Хранит загруженный граф
+static std::vector<int> selectedEdges;   // Индексы рёбер для подсветки (текущее дерево)
 
 // === Глобальные переменные для имитации состояния ГА ===
-static int vertexCount = 6;
-static int edgeCount = 9;
+static int vertexCount = 0;
+static int edgeCount = 0;
 static int populationSize = 20;
 static int tournamentSize = 3;
 static float crossoverProb = 0.8f;
@@ -98,14 +104,47 @@ int main() {
         ImGui::Text("Данные графа");
         ImGui::Separator();
         if (ImGui::Button("Загрузить из файла")) {
-            statusMessage = "Выбран файл (заглушка)";
+            // Пока используем жёсткий путь. Позже сделаем диалог выбора файла.
+            std::string path = "C:/Users/Admin/Desktop/GIT/Educational-practice/graph.txt";
+            
+            if (loadFromFile(path, currentGraph)) {
+            // Обновляем глобальные переменные для отображения в интерфейсе
+            vertexCount = currentGraph.vertexCount;
+            edgeCount = (int)currentGraph.edges.size();
+        
+            // Очищаем выделенные рёбра и историю
+            selectedEdges.clear();
+            weightHistory.clear();
+            bestChromosome = "{}";
+            bestWeight = 0.0;
+            bestFitness = 0.0;
+            currentGeneration = 0;
+        
+            statusMessage = "Граф загружен! Вершин: " + std::to_string(vertexCount) + ", рёбер: " + std::to_string(edgeCount);
+            }
+            else {
+                statusMessage = "Ошибка загрузки файла! Проверьте путь и формат.";
+            }
         }
+
         ImGui::SameLine();
         if (ImGui::Button("Случайная генерация")) {
-            statusMessage = "Сгенерирован случайный граф (заглушка)";
-            vertexCount = 6 + rand() % 5;
-            edgeCount = vertexCount * (vertexCount - 1) / 2 / 2 + rand() % 5;
+            // Генерируем полностью случайный граф (размер и плотность — случайны)
+            generateRandomGraphAuto(currentGraph);
+
+            // Обновляем глобальные переменные
+            vertexCount = currentGraph.vertexCount;
+            edgeCount = (int)currentGraph.edges.size();
+
+            // Очищаем выделение и историю
+            selectedEdges.clear();
             weightHistory.clear();
+            bestChromosome = "{}";
+            bestWeight = 0.0;
+            bestFitness = 0.0;
+            currentGeneration = 0;
+
+            statusMessage = "Случайный граф: " + std::to_string(vertexCount) + " вершин, " + std::to_string(edgeCount) + " рёбер";
         }
 
         ImGui::Spacing();
@@ -115,11 +154,21 @@ int main() {
         ImGui::InputInt("Вершина 2", &v2);
         ImGui::InputInt("Вес", &weight);
         if (ImGui::Button("Добавить ребро")) {
-            if (v1 != v2 && weight > 0) {
-                statusMessage = "Ребро добавлено (заглушка)";
-                edgeCount++;
-            } else {
-                statusMessage = "Некорректные данные ребра";
+            std::string msg;
+            if (addEdgeToGraph(currentGraph, v1, v2, weight, msg)) {
+                // Успешно — обновляем глобальные переменные
+                vertexCount = currentGraph.vertexCount;
+                edgeCount = (int)currentGraph.edges.size();
+                selectedEdges.clear();
+                weightHistory.clear();
+                bestChromosome = "{}";
+                bestWeight = 0.0;
+                bestFitness = 0.0;
+                currentGeneration = 0;
+                statusMessage = msg;
+            }       
+            else {
+                statusMessage = msg; // сообщение об ошибке
             }
         }
 

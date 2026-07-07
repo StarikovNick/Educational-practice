@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Исполняемый файл
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} main.cpp GraphData.cpp)
 
 # --- ImGui (исходники) ---
 file(GLOB IMGUI_SOURCES "pack_for_gui/imgui_lib/*.cpp")
@@ -17,11 +17,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES}
 target_include_directories(${PROJECT_NAME} PRIVATE
     "pack_for_gui/imgui_lib"
     "pack_for_gui/imgui_lib/backends"
-<<<<<<< HEAD
-    "pack_for_gui/glfw/include"         
-=======
-    "pack_for_gui/glfw/include"          # здесь заголовки GLFW
->>>>>>> 1a3da97909f8362877d4eb042cf321ee1d71c966
+    "pack_for_gui/glfw/include"
 )
 
 # --- Путь к библиотекам GLFW ---
