@@ -96,7 +96,7 @@ void drawGraphVisualization() {
     }
 
     // Рисует выбранное дерево с обозначением весов
-    if (!testTrees.empty() && selectedTreeIndex >= 0 && selectedTreeIndex < (int)testTrees.size()) {
+    if (showTree && !testTrees.empty() && selectedTreeIndex >= 0 && selectedTreeIndex < (int)testTrees.size()) {
         const auto& tree = testTrees[selectedTreeIndex];
         double totalWeight = 0;         // Коля везде где эта переменная меняется заменяй ее на ту что в структуре особи(дерева)
         for (const auto& edge : tree) {
@@ -119,6 +119,10 @@ void drawGraphVisualization() {
             drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30), 
                             IM_COL32(255, 255, 255, 255), info.c_str());
         }
+    } else {
+        drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30),
+                        IM_COL32(200, 200, 200, 255),
+                        showTree ? "Дерево не выбрано" : "Показ дерева отключён");
     }
 
     // Рисует вершинки
@@ -278,19 +282,11 @@ void DrawInfoPanel()
     }
     ImGui::Separator();
 
-    ImGui::Text("Ручное добавление ребра:");
-    static int v1 = 0, v2 = 1, weight = 1;
-    ImGui::PushItemWidth(150);
-    ImGui::InputInt("Вершина 1", &v1);
-    ImGui::InputInt("Вершина 2", &v2);
-    ImGui::InputInt("Вес", &weight);
-    if (ImGui::Button("Добавить ребро")) {
-        if (v1 != v2 && weight > 0) {
-            statusMessage = "Ребро добавлено (заглушка)";
-            edgeCount++;
-        } else {
-            statusMessage = "Некорректные данные ребра";
-        }
+    ImGui::SameLine();
+    if (ImGui::Button("Ручной ввод")) {
+        showManualInput = true;
+        manualVertexCount = 5;
+        memset(manualMatrix, 0, sizeof(manualMatrix));
     }
 
     ImGui::End();
@@ -302,23 +298,100 @@ void DrawVisualizationWindow()
     ImGui::SetNextWindowSize(ImVec2(660, 880), ImGuiCond_Always);
     ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
     
-    // Выбор номера особи (1-based)
+    // Выбор номера особи 
     int totalTrees = (int)testTrees.size();
     if (totalTrees > 0) {
-        int displayIndex = selectedTreeIndex + 1; // преобразуем в 1-based
+        int displayIndex = selectedTreeIndex + 1;
         ImGui::InputInt("Номер особи (1..N)", &displayIndex);
         // Коррекция диапазона
         if (displayIndex < 1) displayIndex = 1;
         if (displayIndex > totalTrees) displayIndex = totalTrees;
-        selectedTreeIndex = displayIndex - 1; // обратно в 0-based
+        selectedTreeIndex = displayIndex - 1;
         ImGui::Text("Всего деревьев: %d", totalTrees);
     } else {
         ImGui::Text("Нет деревьев для отображения");
         selectedTreeIndex = 0;
     }
 
+    ImGui::Checkbox("Показывать дерево", &showTree);
+
     drawGraphVisualization();
 
+    ImGui::End();
+}
+
+void DrawManualInputWindow() {
+    if (!showManualInput) return;
+    ImGui::SetNextWindowSize(ImVec2(600, 420), ImGuiCond_Always);
+    if (ImGui::Begin("Ручной ввод графа", &showManualInput, ImGuiWindowFlags_NoResize)) {
+        ImGui::SetNextItemWidth(80);
+        ImGui::InputInt("Количество вершин (3-10)", &manualVertexCount);
+        if (manualVertexCount < 3) manualVertexCount = 3;
+        if (manualVertexCount > 10) manualVertexCount = 10;
+
+        ImGui::BeginChild("MatrixTable", ImVec2(0, 310), true);
+        ImGui::Columns(manualVertexCount + 1, "matrix", false);
+        ImGui::Text(" ");
+        ImGui::NextColumn();
+        for (int j = 0; j < manualVertexCount; ++j) {
+            ImGui::Text("%d", j);
+            ImGui::NextColumn();
+        }
+        ImGui::Separator();
+
+        for (int i = 0; i < manualVertexCount; ++i) {
+            ImGui::Text("%d", i);
+            ImGui::NextColumn();
+            for (int j = 0; j < manualVertexCount; ++j) {
+                if (i < j) {
+                    double val = manualMatrix[i][j];
+                    ImGui::SetNextItemWidth(80);
+                    if (ImGui::InputDouble(("##" + std::to_string(i) + std::to_string(j)).c_str(), &val, 0.0, 0.0, "%.1f")) {
+                        if (val < 0) val = 0;
+                        manualMatrix[i][j] = val;
+                        if (i != j) manualMatrix[j][i] = val;
+                    }
+                } else {
+                    ImGui::Text("%.1f", manualMatrix[i][j]);
+                }
+                ImGui::NextColumn();
+            }
+        }
+        ImGui::Columns(1);
+        ImGui::EndChild();
+
+        if (ImGui::Button("Создать граф")) {
+            bool hasEdge = false;
+            for (int i = 0; i < manualVertexCount; ++i)
+                for (int j = i + 1; j < manualVertexCount; ++j)
+                    if (manualMatrix[i][j] > 0) { hasEdge = true; break; }
+            if (!hasEdge) {
+                statusMessage = "Ошибка: граф не может быть пустым. Добавьте хотя бы одно ребро с весом > 0.";
+                ImGui::OpenPopup("Ошибка");
+            } else {
+                currentGraph.vertexCount = manualVertexCount;
+                currentGraph.edges.clear();
+                for (int i = 0; i < manualVertexCount; ++i)
+                    for (int j = i + 1; j < manualVertexCount; ++j)
+                        if (manualMatrix[i][j] > 0) {
+                            Edge e{i, j, manualMatrix[i][j]};
+                            currentGraph.edges.push_back(e);
+                        }
+                vertexCount = manualVertexCount;
+                edgeCount = (int)currentGraph.edges.size();
+                statusMessage = "Граф получен вручную";
+                showManualInput = false;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Отмена")) showManualInput = false;
+
+        if (ImGui::BeginPopupModal("Ошибка", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("%s", statusMessage.c_str());
+            if (ImGui::Button("OK")) ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+    }
     ImGui::End();
 }
 

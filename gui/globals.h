@@ -26,3 +26,7 @@ extern std::string statusMessage;
 extern std::vector<double> weightHistory;
 extern std::vector<std::string> populationDisplay;
 extern std::string bestChromosome;
+extern bool showManualInput;
+extern double manualMatrix[10][10];
+extern int manualVertexCount;
+extern bool showTree;

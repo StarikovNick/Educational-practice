@@ -75,6 +75,7 @@ int main()
         DrawInfoPanel();
         DrawVisualizationWindow();
         DrawEvolutionPlot();
+        DrawManualInputWindow();
 
         ImGui::Render();
 

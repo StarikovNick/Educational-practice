@@ -23,3 +23,7 @@ std::string statusMessage = "Готов к работе";
 std::vector<double> weightHistory;
 std::vector<std::string> populationDisplay;
 std::string bestChromosome = "{0, 3, 5, 7, 8}";
+bool showManualInput = false;
+double manualMatrix[10][10] = {};
+int manualVertexCount = 5;
+bool showTree = true;
