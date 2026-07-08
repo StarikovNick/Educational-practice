@@ -2,7 +2,7 @@
 
 #include <vector>
 
-// Структура ребер
+// РЎС‚СЂСѓРєС‚СѓСЂР° СЂРµР±СЂР°
 struct Edge
 {
     int from;
@@ -10,17 +10,17 @@ struct Edge
     double weight;
 };
 
-// Структура графа
+// РЎС‚СЂСѓРєС‚СѓСЂР° РіСЂР°С„Р°
 struct Graph
 {
-    int vertex_count;
+    int vertexCount;
     std::vector<Edge> edges;
 };
 
-// Структура особи
+// РЎС‚СЂСѓРєС‚СѓСЂР° РѕСЃРѕР±Рё
 struct Individual
 {
-    std::vector<int> edges;   // индексы ребер
-    double weight = 0.0;      // сумма весов дерева
-    double fitness = 0.0;     // значение функции качества
+    std::vector<int> edges;   // СЃРїРёСЃРѕРє СЂРµР±РµСЂ
+    double weight = 0.0;      // СЃСѓРјРјР°СЂРЅС‹Р№ РІРµСЃ СЂРµР±РµСЂ
+    double fitness = 0.0;     // РїР°СЂР°РјРµС‚СЂ РїСЂРёСЃРїРѕСЃРѕР±Р»РµРЅРЅРѕСЃС‚Рё
 };

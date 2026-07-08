@@ -1,0 +1,316 @@
+#include "genetic_algorithm.h"
+
+// Конструктор
+GeneticAlgorithm::GeneticAlgorithm() {}
+
+// Сеттеры
+void GeneticAlgorithm::setGraph(const Graph& graph)
+{
+    this->graph = graph;
+}
+void GeneticAlgorithm::setPopulationSize(int size)
+{
+    populationSize = size;
+}
+void GeneticAlgorithm::setMutationProbability(double probability)
+{
+    mutationProbability = probability;
+}
+void GeneticAlgorithm::setCrossoverProbability(double probability)
+{
+    crossoverProbability = probability;
+}
+void GeneticAlgorithm::setMaxGenerations(int generations)
+{
+    maxGenerations = generations;
+}
+void GeneticAlgorithm::setTournamentSize(int size)
+{
+    tournamentSize = size;
+}
+
+// Геттеры
+const std::vector<Individual>& GeneticAlgorithm::getCurrentPopulation() const
+{
+    return population;
+}
+const Individual& GeneticAlgorithm::getBestIndividual() const
+{
+    return bestIndividual;
+}
+const std::vector<double>& GeneticAlgorithm::getFitnessHistory() const
+{
+    return fitnessHistory;
+}
+const std::vector<std::vector<Individual>>&
+GeneticAlgorithm::getPopulationHistory() const
+{
+    return populationHistory;
+}
+int GeneticAlgorithm::getCurrentGeneration() const
+{
+    return generation;
+}
+
+// Создание начальной популяции (инициализация)
+void GeneticAlgorithm::initialize()
+{
+    generation = 0;
+    
+    population.clear();
+    fitnessHistory.clear();
+    populationHistory.clear();
+    bestIndividual.edges.clear();
+    bestIndividual.weight = 0;
+    bestIndividual.fitness = 0;
+
+    createInitialPopulation();
+    evaluatePopulation();
+    updateBestIndividual();
+}
+
+// Создание начальной популяции
+void GeneticAlgorithm::createInitialPopulation()
+{
+    population.clear();
+
+    std::vector<int> edgeIndices(graph.edges.size());
+
+    std::iota(edgeIndices.begin(), edgeIndices.end(), 0);
+
+    while (population.size() < static_cast<size_t>(populationSize)) {
+        Individual individual;
+        DisjointSet dsu(graph.vertexCount);
+
+        std::shuffle(edgeIndices.begin(), edgeIndices.end(), randomGenerator);
+        for (int edgeIndex : edgeIndices) {
+            const Edge& edge = graph.edges[edgeIndex];
+
+            if (dsu.unite(edge.from, edge.to)) {
+                individual.edges.push_back(edgeIndex);
+
+                if (individual.edges.size() ==
+                    static_cast<size_t>(graph.vertexCount - 1))
+                    break;
+            }
+        }
+
+        individual.weight = calculateWeight(individual);
+        individual.fitness = calculateFitness(individual);
+
+        population.push_back(individual);
+    }
+}
+
+// Функция приспособленности
+void GeneticAlgorithm::evaluatePopulation()
+{
+    for (Individual& individual : population) {
+        individual.weight = calculateWeight(individual);
+        individual.fitness = calculateFitness(individual);
+    }
+}
+// Обновление лучшего решения
+void GeneticAlgorithm::updateBestIndividual()
+{
+    if (population.empty())
+        return;
+
+    if (generation == 0 && bestIndividual.edges.empty())
+        bestIndividual = population.front();
+
+    for (const Individual& individual : population) {
+        if (individual.fitness < bestIndividual.fitness)
+            bestIndividual = individual;
+    }
+}
+
+// Вычисление веса
+double GeneticAlgorithm::calculateWeight(const Individual& individual)
+{
+    double totalWeight = 0.0;
+
+    for (int edgeIndex : individual.edges) {
+        totalWeight += graph.edges[edgeIndex].weight;
+    }
+
+    return totalWeight;
+}
+// Вычисление приспособленности
+double GeneticAlgorithm::calculateFitness(const Individual& individual)
+{
+    return individual.weight;
+}
+
+// Турнирный отбор
+Individual GeneticAlgorithm::selection()
+{
+    std::uniform_int_distribution<int> distribution(
+        0, static_cast<int>(population.size()) - 1);
+    Individual best = population[distribution(randomGenerator)];
+
+    for (int i = 1; i < tournamentSize; i++) {
+        const Individual& candidate = population[distribution(randomGenerator)];
+
+        if (candidate.fitness < best.fitness)
+            best = candidate;
+    }
+
+    return best;
+}
+
+// Равномерное скрещивание
+std::pair<Individual, Individual> GeneticAlgorithm::crossover(
+    const Individual& parent1, const Individual& parent2)
+{
+    Individual child1;
+    Individual child2;
+
+    std::bernoulli_distribution geneChoice(0.5);
+
+    size_t chromosomeSize = parent1.edges.size();
+    child1.edges.resize(chromosomeSize);
+    child2.edges.resize(chromosomeSize);
+
+    for (size_t i = 0; i < chromosomeSize; i++) {
+        if (geneChoice(randomGenerator)) {
+            child1.edges[i] = parent1.edges[i];
+            child2.edges[i] = parent2.edges[i];
+        }
+        else {
+            child1.edges[i] = parent2.edges[i];
+            child2.edges[i] = parent1.edges[i];
+        }
+    }
+
+    repair(child1);
+    repair(child2);
+
+    return {child1, child2};
+}
+
+// Мутация
+void GeneticAlgorithm::mutate(Individual& individual)
+{
+    std::bernoulli_distribution mutation(mutationProbability);
+
+    if (!mutation(randomGenerator))
+        return;
+
+    std::uniform_int_distribution<int> removeDistribution(
+        0, static_cast<int>(individual.edges.size()) - 1);
+    int removeIndex = removeDistribution(randomGenerator);
+    individual.edges.erase(individual.edges.begin() + removeIndex);
+
+    std::uniform_int_distribution<int> edgeDistribution(
+        0, static_cast<int>(graph.edges.size()) - 1);
+    individual.edges.push_back(edgeDistribution(randomGenerator));
+
+    repair(individual);
+}
+
+// Функция исправления
+void GeneticAlgorithm::repair(Individual& individual)
+{
+    // Исправление дубликатов
+    std::sort(individual.edges.begin(), individual.edges.end());
+    individual.edges.erase(std::unique(individual.edges.begin(),
+            individual.edges.end()), individual.edges.end());
+
+    // Исправление циклов
+    DisjointSet dsu(graph.vertexCount);
+    std::vector<int> repairedEdges;
+
+    for (int edgeIndex : individual.edges) {
+        const Edge& edge = graph.edges[edgeIndex];
+
+        if (dsu.unite(edge.from, edge.to))
+            repairedEdges.push_back(edgeIndex);
+    }
+
+    // Исправление несвязности
+    std::vector<int> sortedEdgeIndices(graph.edges.size());
+
+    std::iota(sortedEdgeIndices.begin(), sortedEdgeIndices.end(), 0);
+
+    std::sort(sortedEdgeIndices.begin(), sortedEdgeIndices.end(),
+        [&](int left, int right) {
+            return graph.edges[left].weight < graph.edges[right].weight; });
+
+    for (int edgeIndex : sortedEdgeIndices) {
+        if (repairedEdges.size() ==
+            static_cast<size_t>(graph.vertexCount - 1))
+            break;
+
+        const Edge& edge = graph.edges[edgeIndex];
+
+        if (dsu.unite(edge.from, edge.to))
+            repairedEdges.push_back(edgeIndex);
+    }
+
+    // Запись результата
+    std::sort(repairedEdges.begin(), repairedEdges.end());
+    individual.edges = std::move(repairedEdges);
+    individual.weight = calculateWeight(individual);
+    individual.fitness = calculateFitness(individual);
+}
+
+// Запуск одного шага
+bool GeneticAlgorithm::doOneStep()
+{
+    if (isFinished())
+        return false;
+
+    // Сохранение текущего поколения
+    populationHistory.push_back(population);
+
+    std::vector<Individual> newPopulation;
+    std::bernoulli_distribution crossoverDistribution(crossoverProbability);
+
+    while (newPopulation.size() < static_cast<size_t>(populationSize)) {
+        // Выбор родителей
+        Individual parent1 = selection();
+        Individual parent2 = selection();
+
+        Individual child1 = parent1;
+        Individual child2 = parent2;
+
+        // Скрещивание
+        if (crossoverDistribution(randomGenerator)) {
+            auto children = crossover(parent1, parent2);
+            child1 = std::move(children.first);
+            child2 = std::move(children.second);
+        }
+
+        // Мутация
+        mutate(child1);
+        mutate(child2);
+
+        newPopulation.push_back(std::move(child1));
+
+        if (newPopulation.size() < static_cast<size_t>(populationSize))
+            newPopulation.push_back(std::move(child2));
+    }
+
+    population = std::move(newPopulation);
+
+    evaluatePopulation();
+    updateBestIndividual();
+
+    fitnessHistory.push_back(bestIndividual.fitness);
+    generation++;
+
+    return !isFinished();
+}
+
+// Полный запуск
+void GeneticAlgorithm::run()
+{
+    while (doOneStep()) {}
+}
+
+// Критерий сотановки
+bool GeneticAlgorithm::isFinished() const
+{
+    return generation >= maxGenerations;
+}
