@@ -2,6 +2,8 @@
 #include "GraphData.h"
 
 Graph currentGraph;
+std::vector<std::vector<Edge>> testTrees;
+int selectedTreeIndex = 0;
 std::vector<int> selectedEdges;
 int vertexCount = 0;
 int edgeCount = 0;
@@ -18,6 +20,6 @@ bool isAlgorithmRunning = false;
 bool isAlgorithmPaused = false;
 bool isAlgorithmFinished = false;
 std::string statusMessage = "Готов к работе";
-std::vector<float> weightHistory;
+std::vector<double> weightHistory;
 std::vector<std::string> populationDisplay;
 std::string bestChromosome = "{0, 3, 5, 7, 8}";

@@ -3,6 +3,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <implot.h>
+#include <chrono>
+#include <thread>
 #include "gui.h"
 #include "g_alg.h"
 #include "globals.h"
@@ -22,16 +24,48 @@ int main()
     ImPlot::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
     ImFont* font = io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/arial.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
     if (!font) io.Fonts->AddFontDefault();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+    
+    //КОЛЯЯЯЯЯЯЯЯЯЯ ТУТ Я ИНИЦИАЛИЗИРУЮ ТЕСТОВЫЕ ДЕРЕВЬЯ И ГРАФЫ ДЛЯ ДЕМОНСТРАЦИИ
+    //РАБОТЫ ИХ ТЫ КАК РАЗ ДОЛЖЕН БУДЕШЬ ПЕРЕДАТЬ ОТ АЛГОРИТМА ПОЭТОМУ КОГДА СДЕЛАЕШЬ УДОЛИ МОИ ТЕСТЫ)
+    initTestTrees();
+    initTestGraph();
+
+    bool windowFocused = true;
+    glfwSetWindowFocusCallback(window, [](GLFWwindow* window, int focused) {
+        if (!focused) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    });
+
+    auto lastRenderTime = std::chrono::steady_clock::now();
 
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+
+        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastRenderTime).count();
+
+        int targetFPS = windowFocused ? 60 : 10;
+        int targetIntervalMs = 1000 / targetFPS;
+
+        if (elapsed < targetIntervalMs) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(targetIntervalMs - elapsed));
+        }
+
+        lastRenderTime = std::chrono::steady_clock::now();
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -43,6 +77,7 @@ int main()
         DrawEvolutionPlot();
 
         ImGui::Render();
+
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);

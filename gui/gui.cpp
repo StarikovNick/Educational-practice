@@ -6,17 +6,80 @@
 #include <iostream>
 #include <random>
 
-static void DrawGraphVisualization(ImDrawList* drawList, ImVec2 canvasPos, ImVec2 canvasSize)
-{
-    // Отрисовываем рамку
-    drawList->AddRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y),
+void initTestTrees() {
+    testTrees.clear();
+
+    testTrees.push_back(std::vector<Edge>{ 
+        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{0, 2, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{0, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{0, 4, static_cast<double>(1 + std::rand() % 20)} 
+    });
+    testTrees.push_back(std::vector<Edge>{ 
+        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{1, 2, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{2, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
+    });
+    testTrees.push_back(std::vector<Edge>{ 
+        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{0, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{1, 2, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{2, 4, static_cast<double>(1 + std::rand() % 20)} 
+    });
+    testTrees.push_back(std::vector<Edge>{ 
+        Edge{0, 2, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{1, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{2, 4, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
+    });
+    testTrees.push_back(std::vector<Edge>{ 
+        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{1, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{2, 3, static_cast<double>(1 + std::rand() % 20)}, 
+        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
+    });
+}
+
+void initTestGraph() {
+    currentGraph.vertexCount = 5;
+    currentGraph.edges.clear();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, 20);
+    for (int i = 0; i < 5; ++i) {
+        for (int j = i + 1; j < 5; ++j) {
+            Edge e;
+            e.from = i;
+            e.to = j;
+            e.weight = static_cast<double>(dis(gen));
+            currentGraph.edges.push_back(e);
+        }
+    }
+    vertexCount = 5;
+    edgeCount = (int)currentGraph.edges.size();
+}
+
+void drawGraphVisualization() {
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+    ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+
+    drawList->AddRect(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), 
                       IM_COL32(80, 80, 80, 255), 4.0f);
 
-    // Пока рисуем фиксированный граф из 7 вершин (можно позже переделать на currentGraph)
-    const int n = 7;
+    int n = currentGraph.vertexCount;
+    if (n == 0) {
+        drawList->AddText(ImVec2(canvasPos.x + 20, canvasPos.y + 20), 
+                          IM_COL32(200, 200, 200, 255), 
+                          "Загрузите или сгенерируйте граф");
+        return;
+    }
+
     const float PI = 3.14159265359f;
     ImVec2 center = ImVec2(canvasPos.x + canvasSize.x * 0.5f, canvasPos.y + canvasSize.y * 0.5f);
-    float radius = std::min(canvasSize.x, canvasSize.y) * 0.4f;
+    float radius = std::min(canvasSize.x, canvasSize.y) * 0.35f;
 
     std::vector<ImVec2> positions(n);
     for (int i = 0; i < n; ++i) {
@@ -24,19 +87,47 @@ static void DrawGraphVisualization(ImDrawList* drawList, ImVec2 canvasPos, ImVec
         positions[i] = ImVec2(center.x + radius * cosf(angle), center.y + radius * sinf(angle));
     }
 
-    // Рёбра (пока все возможные, потом можно брать из currentGraph)
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            drawList->AddLine(positions[i], positions[j], IM_COL32(180, 180, 180, 255), 2.0f);
+    // Рисует основной граф сереньким
+    for (const auto& edge : currentGraph.edges) {
+        if (edge.from < n && edge.to < n) {
+            drawList->AddLine(positions[edge.from], positions[edge.to], 
+                              IM_COL32(150, 150, 150, 255), 1.5f);
         }
     }
 
-    // Вершины
-    for (int i = 0; i < n; ++i) {
-        drawList->AddCircleFilled(positions[i], 10.0f, IM_COL32(70, 150, 255, 255));
-        ImVec2 textPos = ImVec2(positions[i].x - 20.0f, positions[i].y - 10.0f);
-        drawList->AddText(textPos, IM_COL32(255, 255, 255, 255), std::to_string(i).c_str());
+    // Рисует выбранное дерево с обозначением весов
+    if (!testTrees.empty() && selectedTreeIndex >= 0 && selectedTreeIndex < (int)testTrees.size()) {
+        const auto& tree = testTrees[selectedTreeIndex];
+        double totalWeight = 0;         // Коля везде где эта переменная меняется заменяй ее на ту что в структуре особи(дерева)
+        for (const auto& edge : tree) {
+            if (edge.from < n && edge.to < n) {
+                totalWeight+=edge.weight;
+                ImVec2 p1 = positions[edge.from];
+                ImVec2 p2 = positions[edge.to];
+                drawList->AddLine(p1, p2, IM_COL32(255, 50, 50, 255), 4.0f);
+                // Подпись веса
+                ImVec2 mid = ImVec2((p1.x + p2.x) * 0.5f, (p1.y + p2.y) * 0.5f);
+                std::string weightText = std::to_string(edge.weight);
+                drawList->AddText(mid, IM_COL32(255, 255, 255, 255), weightText.c_str());
+            }
+        }
+        // Инфа по дереву
+        if (!testTrees.empty() && selectedTreeIndex < (int)testTrees.size()) {
+            std::string info = "Дерево " + std::to_string(selectedTreeIndex + 1) + 
+                            " (рёбер: " + std::to_string(testTrees[selectedTreeIndex].size()) + ")" +
+                            " Вес дерева = " + std::to_string(totalWeight);
+            drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30), 
+                            IM_COL32(255, 255, 255, 255), info.c_str());
+        }
     }
+
+    // Рисует вершинки
+    for (int i = 0; i < n; ++i) {
+        drawList->AddCircleFilled(positions[i], 20.0f, IM_COL32(70, 150, 255, 255));
+        drawList->AddText(ImVec2(positions[i].x - 8.0f, positions[i].y - 10.0f), 
+                          IM_COL32(255, 255, 255, 255), std::to_string(i).c_str());
+    }
+
 }
 
 void DrawControlPanel()
@@ -125,7 +216,7 @@ void DrawControlPanel()
                 double newWeight = 50 + rand() % 50;
                 bestWeight = newWeight;
                 bestFitness = 100.0 - newWeight;
-                weightHistory.push_back((float)newWeight);
+                weightHistory.push_back((double)newWeight);
                 bestChromosome = "{";
                 for (int i = 0; i < vertexCount - 1; i++) {
                     bestChromosome += std::to_string(rand() % edgeCount) + (i < vertexCount - 2 ? ", " : "");
@@ -208,13 +299,25 @@ void DrawInfoPanel()
 void DrawVisualizationWindow()
 {
     ImGui::SetNextWindowPos(ImVec2(730, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(650, 880), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(660, 880), ImGuiCond_Always);
     ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
+    
+    // Выбор номера особи (1-based)
+    int totalTrees = (int)testTrees.size();
+    if (totalTrees > 0) {
+        int displayIndex = selectedTreeIndex + 1; // преобразуем в 1-based
+        ImGui::InputInt("Номер особи (1..N)", &displayIndex);
+        // Коррекция диапазона
+        if (displayIndex < 1) displayIndex = 1;
+        if (displayIndex > totalTrees) displayIndex = totalTrees;
+        selectedTreeIndex = displayIndex - 1; // обратно в 0-based
+        ImGui::Text("Всего деревьев: %d", totalTrees);
+    } else {
+        ImGui::Text("Нет деревьев для отображения");
+        selectedTreeIndex = 0;
+    }
 
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 canvasPos = ImGui::GetCursorScreenPos();
-    ImVec2 canvasSize = ImGui::GetContentRegionAvail();
-    DrawGraphVisualization(drawList, canvasPos, canvasSize);
+    drawGraphVisualization();
 
     ImGui::End();
 }
@@ -222,16 +325,16 @@ void DrawVisualizationWindow()
 void DrawEvolutionPlot()
 {
     ImGui::SetNextWindowPos(ImVec2(10, 420), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(710, 480), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(710, 470), ImGuiCond_Always);
     ImGui::Begin("График эволюции (вес МОД по поколениям)", nullptr, ImGuiWindowFlags_NoResize);
 
     ImGui::Text("Лучший вес на каждом поколении");
     if (!weightHistory.empty()) {
-        if (ImPlot::BeginPlot("##График", ImVec2(550, 380))) {
+        if (ImPlot::BeginPlot("##График", ImVec2(680, 410))) {
             ImPlot::SetupAxis(ImAxis_X1, "Поколение");
             ImPlot::SetupAxis(ImAxis_Y1, "Вес");
-            ImPlot::PlotLine("Вес МОД", weightHistory.data(), (int)weightHistory.size());
-            ImPlot::PlotScatter("Вес МОД", weightHistory.data(), (int)weightHistory.size());
+            ImPlot::PlotLine("Вес МОД", weightHistory.data(), weightHistory.size());
+            ImPlot::PlotScatter("Вес МОД", weightHistory.data(), weightHistory.size());
             ImPlot::EndPlot();
         }
     } else {

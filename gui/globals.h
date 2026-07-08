@@ -5,6 +5,8 @@
 #include "GraphData.h"
 
 extern Graph currentGraph;
+extern std::vector<std::vector<Edge>> testTrees;
+extern int selectedTreeIndex;
 extern std::vector<int> selectedEdges;
 extern int vertexCount;
 extern int edgeCount;
@@ -21,6 +23,6 @@ extern bool isAlgorithmRunning;
 extern bool isAlgorithmPaused;
 extern bool isAlgorithmFinished;
 extern std::string statusMessage;
-extern std::vector<float> weightHistory;
+extern std::vector<double> weightHistory;
 extern std::vector<std::string> populationDisplay;
 extern std::string bestChromosome;
