@@ -264,8 +264,15 @@ void DrawControlPanel()
                 // Запускаем полный прогон
                 while (!ga.isFinished()) {
                     ga.doOneStep();
+                    Individual best = ga.getBestIndividual();
                     // Вывод информации о текущем поколении
-                    std::cout << " | Generation " << ga.getCurrentGeneration() << " | Best weight: " << ga.getBestIndividual().weight << " | Best fitness: " << ga.getBestIndividual().fitness << std::endl;
+                    std::cout << "Generation " << ga.getCurrentGeneration() << " | Best weight: " << best.weight << " | Best fitness: " << best.fitness << std::endl;
+                    std::cout << "Best individual:" << '\n';
+                    for (int edgeIndex : best.edges) {
+                        const Edge& edge = currentGraph.edges[edgeIndex];
+                        std::cout << edge.from << " " << edge.to << " " << edge.weight << '\n';
+                    }
+                    std::cout << '\n';
                 }
                 std::cout << "=== Algorithm finished. Total steps: "  << ga.getCurrentGeneration() << " ===" << std::endl;
                 // Обновляем данные после завершения
