@@ -143,7 +143,7 @@ void DrawControlPanel()
     ImGui::Text("Данные графа");
     ImGui::Separator();
     if (ImGui::Button("Загрузить из файла")) {
-        std::string path = "./data/graph.txt";
+        std::string path = "../file/graph.txt";
         if (loadFromFile(path, currentGraph)) {
             vertexCount = currentGraph.vertexCount;
             edgeCount = (int)currentGraph.edges.size();
