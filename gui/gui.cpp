@@ -245,70 +245,88 @@ void DrawControlPanel()
     ImGui::Separator();
 
     if (!isAlgorithmRunning && !isAlgorithmFinished) {
+    // Кнопка "Запустить алгоритм" – полный прогон
         if (ImGui::Button("Запустить алгоритм")) {
-            
-            isAlgorithmRunning = true;
-            isAlgorithmPaused = false;
-            isAlgorithmFinished = false;
-            currentGeneration = 0;
-            bestFitness = 0.0;
-            bestWeight = 0.0;
-            weightHistory.clear();
-            statusMessage = "Алгоритм запущен (заглушка)";
-        }
-    } else {
-        if (isAlgorithmRunning && !isAlgorithmPaused) {
-            if (ImGui::Button("Пауза")) {
-                isAlgorithmPaused = true;
-                statusMessage = "Алгоритм на паузе";
-            }
-        } else if (isAlgorithmRunning && isAlgorithmPaused) {
-            if (ImGui::Button("Продолжить")) {
-                isAlgorithmPaused = false;
-                statusMessage = "Алгоритм продолжен";
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Один шаг")) {
-            // Логику шага вынесем в GA, но пока оставим заглушку
-            if (isAlgorithmRunning && !isAlgorithmFinished) {
-                currentGeneration++;
-                double newWeight = 50 + rand() % 50;
-                bestWeight = newWeight;
-                bestFitness = 100.0 - newWeight;
-                weightHistory.push_back((double)newWeight);
+            if (currentGraph.vertexCount > 0) {
+                // Если алгоритм не инициализирован, инициализируем
+                if (ga.getCurrentPopulation().empty()) {
+                    ga.setGraph(currentGraph);
+                    ga.setPopulationSize(populationSize);
+                    ga.setTournamentSize(tournamentSize);
+                    ga.setMutationProbability(mutationProb);
+                    ga.setCrossoverProbability(crossoverProb);
+                    ga.setMaxGenerations(maxGenerations);
+                    ga.initialize();
+                }
+                isAlgorithmRunning = true;
+                isAlgorithmFinished = false;
+                // Запускаем полный прогон
+                while (!ga.isFinished()) {
+                    ga.doOneStep();
+                }
+                // Обновляем данные после завершения
+                currentGeneration = ga.getCurrentGeneration();
+                bestWeight = ga.getBestIndividual().weight;
+                bestFitness = ga.getBestIndividual().fitness;
+                weightHistory = ga.getFitnessHistory();
+                selectedEdges = ga.getBestIndividual().edges;
+                const auto& bestInd = ga.getBestIndividual();
                 bestChromosome = "{";
-                for (int i = 0; i < vertexCount - 1; i++) {
-                    bestChromosome += std::to_string(rand() % edgeCount) + (i < vertexCount - 2 ? ", " : "");
+                for (size_t i = 0; i < bestInd.edges.size(); ++i) {
+                    bestChromosome += std::to_string(bestInd.edges[i]);
+                    if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
                 }
                 bestChromosome += "}";
-                if (currentGeneration >= maxGenerations || weightHistory.size() > 10) {
-                    isAlgorithmFinished = true;
-                    statusMessage = "Алгоритм завершён по критерию остановки";
-                } else {
-                    statusMessage = "Шаг " + std::to_string(currentGeneration) + " выполнен";
+                isAlgorithmFinished = true;
+                isAlgorithmRunning = false;
+                statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
+            }
+            else {
+                statusMessage = "Ошибка: сначала загрузите или сгенерируйте граф";
+            }
+        }
+    } 
+    else {
+        // Если алгоритм уже завершён, показываем кнопку "Сброс"
+        if (isAlgorithmFinished) {
+            if (ImGui::Button("Сброс")) {
+                // Сброс состояния и переинициализация
+                isAlgorithmRunning = false;
+                isAlgorithmFinished = false;
+                currentGeneration = 0;
+                bestFitness = 0.0;
+                bestWeight = 0.0;
+                weightHistory.clear();
+                selectedEdges.clear();
+                bestChromosome = "{}";
+                if (currentGraph.vertexCount > 0) {
+                    ga.setGraph(currentGraph);
+                    ga.setPopulationSize(populationSize);
+                    ga.setTournamentSize(tournamentSize);
+                    ga.setMutationProbability(mutationProb);
+                    ga.setCrossoverProbability(crossoverProb);
+                    ga.setMaxGenerations(maxGenerations);
+                    ga.initialize();
+                    currentGeneration = ga.getCurrentGeneration();
+                    bestWeight = ga.getBestIndividual().weight;
+                    bestFitness = ga.getBestIndividual().fitness;
+                    weightHistory = ga.getFitnessHistory();
+                    selectedEdges = ga.getBestIndividual().edges;
+                    const auto& bestInd = ga.getBestIndividual();
+                    bestChromosome = "{";
+                    for (size_t i = 0; i < bestInd.edges.size(); ++i) {
+                        bestChromosome += std::to_string(bestInd.edges[i]);
+                        if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
+                    }
+                    bestChromosome += "}";
+                    statusMessage = "Состояние сброшено, алгоритм переинициализирован";
+                } 
+                else {
+                    statusMessage = "Граф отсутствует, загрузите граф";
                 }
             }
         }
-        ImGui::SameLine();
-        if (ImGui::Button("Завершить")) {
-            if (isAlgorithmRunning) {
-                isAlgorithmFinished = true;
-                statusMessage = "Алгоритм завершён досрочно";
-            }
-        }
-        if (ImGui::Button("Сброс")) {
-            isAlgorithmRunning = false;
-            isAlgorithmPaused = false;
-            isAlgorithmFinished = false;
-            currentGeneration = 0;
-            bestFitness = 0.0;
-            bestWeight = 0.0;
-            weightHistory.clear();
-            statusMessage = "Состояние сброшено";
-        }
     }
-
     ImGui::End();
 }
 
@@ -354,23 +372,28 @@ void DrawVisualizationWindow()
     ImGui::SetNextWindowSize(ImVec2(660, 880), ImGuiCond_Always);
     ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
     
-    // Выбор номера особи 
-    int totalTrees = (int)testTrees.size();
-    if (totalTrees > 0) {
-        int displayIndex = selectedTreeIndex + 1;
-        ImGui::InputInt("Номер особи (1..N)", &displayIndex);
-        // Коррекция диапазона
-        if (displayIndex < 1) displayIndex = 1;
-        if (displayIndex > totalTrees) displayIndex = totalTrees;
-        selectedTreeIndex = displayIndex - 1;
-        ImGui::Text("Всего деревьев: %d", totalTrees);
+    const auto& population = ga.getCurrentPopulation();
+    int totalIndividuals = (int)population.size();
+    if (totalIndividuals > 0) {
+        static int selectedIndividualIndex = 0;
+        if (selectedIndividualIndex >= totalIndividuals)
+            selectedIndividualIndex = totalIndividuals - 1;
+        if (selectedIndividualIndex < 0)
+            selectedIndividualIndex = 0;
+
+        ImGui::InputInt("Номер особи (0..N-1)", &selectedIndividualIndex);
+        if (selectedIndividualIndex < 0) selectedIndividualIndex = 0;
+        if (selectedIndividualIndex >= totalIndividuals) selectedIndividualIndex = totalIndividuals - 1;
+
+        selectedEdges = population[selectedIndividualIndex].edges;
+        ImGui::Text("Вес особи: %.2f", population[selectedIndividualIndex].weight);
+        ImGui::Text("Всего особей: %d", totalIndividuals);
     } else {
-        ImGui::Text("Нет деревьев для отображения");
-        selectedTreeIndex = 0;
+        ImGui::Text("Нет популяции для отображения");
+        selectedEdges.clear();
     }
 
     ImGui::Checkbox("Показывать дерево", &showTree);
-
     drawGraphVisualization();
 
     ImGui::End();
