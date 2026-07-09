@@ -260,10 +260,14 @@ void DrawControlPanel()
                 }
                 isAlgorithmRunning = true;
                 isAlgorithmFinished = false;
+                std::cout << "=== Starting genetic algorithm ===" << std::endl;
                 // Запускаем полный прогон
                 while (!ga.isFinished()) {
                     ga.doOneStep();
+                    // Вывод информации о текущем поколении
+                    std::cout << " | Generation " << ga.getCurrentGeneration() << " | Best weight: " << ga.getBestIndividual().weight << " | Best fitness: " << ga.getBestIndividual().fitness << std::endl;
                 }
+                std::cout << "=== Algorithm finished. Total steps: "  << ga.getCurrentGeneration() << " ===" << std::endl;
                 // Обновляем данные после завершения
                 currentGeneration = ga.getCurrentGeneration();
                 bestWeight = ga.getBestIndividual().weight;
