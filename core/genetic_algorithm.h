@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graph.h"
+#include "GraphData.h"
 #include "disjoint_set.h"
 #include <random>
 #include <algorithm>

@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <vector>
 
@@ -24,3 +24,4 @@ struct Individual
     double weight = 0.0;      // суммарный вес ребер
     double fitness = 0.0;     // параметр приспособленности
 };
+*/

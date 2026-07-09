@@ -1,6 +1,8 @@
 #include "Globals.h"
 #include "GraphData.h"
+#include "genetic_algorithm.h"
 
+GeneticAlgorithm ga;
 Graph currentGraph;
 std::vector<std::vector<Edge>> testTrees;
 int selectedTreeIndex = 0;

@@ -1,8 +1,5 @@
 #pragma once
 
-void initTestTrees();
-void initTestGraph();
-
 
 void DrawManualInputWindow();
 void DrawControlPanel();

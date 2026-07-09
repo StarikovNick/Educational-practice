@@ -13,6 +13,13 @@ struct Graph {
     std::vector<Edge> edges;
 };
 
+struct Individual
+{
+    std::vector<int> edges;   // список ребер
+    double weight = 0.0;      // суммарный вес ребер
+    double fitness = 0.0;     // параметр приспособленности
+};
+
 // Функция для загрузки графа из файла (объявление)
 bool loadFromFile(const std::string& filename, Graph& outGraph);
 void generateRandomGraph(int vertexCount, int extraEdges, Graph& outGraph);
