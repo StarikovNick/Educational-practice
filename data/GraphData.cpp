@@ -107,11 +107,11 @@ void generateRandomGraphAuto(Graph& outGraph) {
     std::mt19937 gen(rd());
 
     // Случайное число вершин от 4 до 12 (можно изменить диапазон)
-    std::uniform_int_distribution<int> vertexDist(4, 50);
+    std::uniform_int_distribution<int> vertexDist(4, 15);
     int vCount = vertexDist(gen);
 
     // Случайное количество дополнительных рёбер от 0 до 5
-    std::uniform_int_distribution<int> extraDist(100, 200);
+    std::uniform_int_distribution<int> extraDist(20, 60);
     int eExtra = extraDist(gen);
 
     // Вызываем основную функцию генерации с этими параметрами

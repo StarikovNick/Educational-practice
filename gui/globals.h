@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 #include "GraphData.h"
+#include "genetic_algorithm.h"
 
+extern GeneticAlgorithm ga;
 extern Graph currentGraph;
 extern std::vector<std::vector<Edge>> testTrees;
 extern int selectedTreeIndex;

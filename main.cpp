@@ -8,6 +8,7 @@
 #include "gui.h"
 #include "g_alg.h"
 #include "globals.h"
+#include "genetic_algorithm.h"
 
 int main()
 {
@@ -34,8 +35,8 @@ int main()
     
     //КОЛЯЯЯЯЯЯЯЯЯЯ ТУТ Я ИНИЦИАЛИЗИРУЮ ТЕСТОВЫЕ ДЕРЕВЬЯ И ГРАФЫ ДЛЯ ДЕМОНСТРАЦИИ
     //РАБОТЫ ИХ ТЫ КАК РАЗ ДОЛЖЕН БУДЕШЬ ПЕРЕДАТЬ ОТ АЛГОРИТМА ПОЭТОМУ КОГДА СДЕЛАЕШЬ УДОЛИ МОИ ТЕСТЫ)
-    initTestTrees();
-    initTestGraph();
+    //initTestTrees();
+    //initTestGraph();
 
     bool windowFocused = true;
     glfwSetWindowFocusCallback(window, [](GLFWwindow* window, int focused) {

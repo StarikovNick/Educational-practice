@@ -96,12 +96,13 @@ void drawGraphVisualization() {
     }
 
     // Рисует выбранное дерево с обозначением весов
-    if (showTree && !testTrees.empty() && selectedTreeIndex >= 0 && selectedTreeIndex < (int)testTrees.size()) {
-        const auto& tree = testTrees[selectedTreeIndex];
-        double totalWeight = 0;         // Коля везде где эта переменная меняется заменяй ее на ту что в структуре особи(дерева)
-        for (const auto& edge : tree) {
+    if (showTree && !selectedEdges.empty()) {
+        double totalWeight = 0.0;
+        for (int idx : selectedEdges) {
+            if (idx < 0 || idx >= (int)currentGraph.edges.size()) continue;
+            const Edge& edge = currentGraph.edges[idx];
             if (edge.from < n && edge.to < n) {
-                totalWeight+=edge.weight;
+                totalWeight += edge.weight;
                 ImVec2 p1 = positions[edge.from];
                 ImVec2 p2 = positions[edge.to];
                 drawList->AddLine(p1, p2, IM_COL32(255, 50, 50, 255), 4.0f);
@@ -111,20 +112,16 @@ void drawGraphVisualization() {
                 drawList->AddText(mid, IM_COL32(255, 255, 255, 255), weightText.c_str());
             }
         }
-        // Инфа по дереву
-        if (!testTrees.empty() && selectedTreeIndex < (int)testTrees.size()) {
-            std::string info = "Дерево " + std::to_string(selectedTreeIndex + 1) + 
-                            " (рёбер: " + std::to_string(testTrees[selectedTreeIndex].size()) + ")" +
-                            " Вес дерева = " + std::to_string(totalWeight);
-            drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30), 
-                            IM_COL32(255, 255, 255, 255), info.c_str());
-        }
+        // Информация
+        std::string info = "Выбранное дерево (рёбер: " + std::to_string(selectedEdges.size()) + 
+                        ") Вес: " + std::to_string(totalWeight);
+        drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30), 
+                        IM_COL32(255, 255, 255, 255), info.c_str());
     } else {
         drawList->AddText(ImVec2(canvasPos.x + 10, canvasPos.y + canvasSize.y - 30),
                         IM_COL32(200, 200, 200, 255),
                         showTree ? "Дерево не выбрано" : "Показ дерева отключён");
     }
-
     // Рисует вершинки
     for (int i = 0; i < n; ++i) {
         drawList->AddCircleFilled(positions[i], 20.0f, IM_COL32(70, 150, 255, 255));
@@ -143,24 +140,9 @@ void DrawControlPanel()
     ImGui::Text("Данные графа");
     ImGui::Separator();
     if (ImGui::Button("Загрузить из файла")) {
-        std::string path = "./data/graph.txt";
-        if (loadFromFile(path, currentGraph)) {
-            vertexCount = currentGraph.vertexCount;
-            edgeCount = (int)currentGraph.edges.size();
-            selectedEdges.clear();
-            weightHistory.clear();
-            bestChromosome = "{}";
-            bestWeight = 0.0;
-            bestFitness = 0.0;
-            currentGeneration = 0;
-            statusMessage = "Граф загружен! Вершин: " + std::to_string(vertexCount) + ", рёбер: " + std::to_string(edgeCount);
-        } else {
-            statusMessage = "Ошибка загрузки файла! Проверьте путь и формат.";
-        }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Случайная генерация")) {
-        generateRandomGraphAuto(currentGraph);
+    std::string path = "../file/graph.txt";
+    if (loadFromFile(path, currentGraph)) {
+        // --- Обновляем глобальные переменные ---
         vertexCount = currentGraph.vertexCount;
         edgeCount = (int)currentGraph.edges.size();
         selectedEdges.clear();
@@ -169,9 +151,82 @@ void DrawControlPanel()
         bestWeight = 0.0;
         bestFitness = 0.0;
         currentGeneration = 0;
-        statusMessage = "Случайный граф: " + std::to_string(vertexCount) + " вершин, " + std::to_string(edgeCount) + " рёбер";
-    }
+        isAlgorithmRunning = false;
+        isAlgorithmFinished = false;
+        statusMessage = "Граф загружен! Вершин: " + std::to_string(vertexCount) + ", рёбер: " + std::to_string(edgeCount);
 
+        // --- Инициализация генетического алгоритма ---
+        ga.setGraph(currentGraph);
+        ga.setPopulationSize(populationSize);
+        ga.setTournamentSize(tournamentSize);
+        ga.setMutationProbability(mutationProb);
+        ga.setCrossoverProbability(crossoverProb);
+        ga.setMaxGenerations(maxGenerations);
+        ga.initialize();  // создаёт начальную популяцию
+
+        // --- Обновляем данные из алгоритма ---
+        currentGeneration = ga.getCurrentGeneration();
+        bestWeight = ga.getBestIndividual().weight;
+        bestFitness = ga.getBestIndividual().fitness;
+        // Копируем историю (пока пустая, но на будущее)
+        weightHistory = ga.getFitnessHistory(); 
+        // Запоминаем лучшую особь для подсветки
+        selectedEdges = ga.getBestIndividual().edges;
+        // Формируем строку хромосомы
+        const auto& bestInd = ga.getBestIndividual();
+        bestChromosome = "{";
+        for (size_t i = 0; i < bestInd.edges.size(); ++i) {
+            bestChromosome += std::to_string(bestInd.edges[i]);
+            if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
+        }
+        bestChromosome += "}";
+
+        statusMessage = "Граф загружен и ГА инициализирован";
+    }
+    else {
+        statusMessage = "Ошибка загрузки файла! Проверьте путь и формат.";
+    }
+}
+    ImGui::SameLine();
+    if (ImGui::Button("Случайная генерация")) {
+        generateRandomGraphAuto(currentGraph);
+
+        vertexCount = currentGraph.vertexCount;
+        edgeCount = (int)currentGraph.edges.size();
+        selectedEdges.clear();
+        weightHistory.clear();
+        bestChromosome = "{}";
+        bestWeight = 0.0;
+        bestFitness = 0.0;
+        currentGeneration = 0;
+        isAlgorithmRunning = false;
+        isAlgorithmFinished = false;
+        statusMessage = "Случайный граф: " + std::to_string(vertexCount) + " вершин, " + std::to_string(edgeCount) + " рёбер";
+
+        // --- Инициализация генетического алгоритма ---
+        ga.setGraph(currentGraph);
+        ga.setPopulationSize(populationSize);
+        ga.setTournamentSize(tournamentSize);
+        ga.setMutationProbability(mutationProb);
+        ga.setCrossoverProbability(crossoverProb);
+        ga.setMaxGenerations(maxGenerations);
+        ga.initialize();
+
+        currentGeneration = ga.getCurrentGeneration();
+        bestWeight = ga.getBestIndividual().weight;
+        bestFitness = ga.getBestIndividual().fitness;
+        weightHistory = ga.getFitnessHistory();
+        selectedEdges = ga.getBestIndividual().edges;
+        const auto& bestInd = ga.getBestIndividual();
+        bestChromosome = "{";
+        for (size_t i = 0; i < bestInd.edges.size(); ++i) {
+            bestChromosome += std::to_string(bestInd.edges[i]);
+            if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
+        }
+        bestChromosome += "}";
+
+        statusMessage = "Случайный граф сгенерирован и ГА инициализирован";
+}
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Text("Параметры ГА");
@@ -191,6 +246,7 @@ void DrawControlPanel()
 
     if (!isAlgorithmRunning && !isAlgorithmFinished) {
         if (ImGui::Button("Запустить алгоритм")) {
+            
             isAlgorithmRunning = true;
             isAlgorithmPaused = false;
             isAlgorithmFinished = false;
