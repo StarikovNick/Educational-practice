@@ -2,6 +2,7 @@
 #include "GraphData.h"
 #include "genetic_algorithm.h"
 
+
 GeneticAlgorithm ga;
 Graph currentGraph;
 std::vector<std::vector<Edge>> testTrees;
@@ -29,3 +30,14 @@ bool showManualInput = false;
 double manualMatrix[10][10] = {};
 int manualVertexCount = 5;
 bool showTree = true;
+
+bool showErrorPopup = false;
+std::string errorMessage;
+
+ImTextureID errorTexture = 0;
+bool errorTextureLoaded = false;
+
+void showError(const std::string& msg) {
+    errorMessage = msg;
+    showErrorPopup = true;
+}

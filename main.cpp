@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -9,6 +11,7 @@
 #include "g_alg.h"
 #include "globals.h"
 #include "genetic_algorithm.h"
+
 
 int main()
 {
@@ -23,6 +26,7 @@ int main()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImPlot::CreateContext();
+    loadErrorTexture(); 
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
@@ -77,6 +81,7 @@ int main()
         DrawVisualizationWindow();
         DrawEvolutionPlot();
         DrawManualInputWindow();
+        DrawErrorPopup();
 
         ImGui::Render();
 

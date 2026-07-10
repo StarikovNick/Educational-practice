@@ -4,6 +4,7 @@
 #include <vector>
 #include "GraphData.h"
 #include "genetic_algorithm.h"
+#include <imgui.h> 
 
 extern GeneticAlgorithm ga;
 extern Graph currentGraph;
@@ -32,3 +33,11 @@ extern bool showManualInput;
 extern double manualMatrix[10][10];
 extern int manualVertexCount;
 extern bool showTree;
+
+extern bool showErrorPopup;
+extern std::string errorMessage;
+
+extern ImTextureID errorTexture;
+extern bool errorTextureLoaded;
+
+void showError(const std::string& msg);

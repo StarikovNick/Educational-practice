@@ -6,3 +6,6 @@ void DrawControlPanel();
 void DrawInfoPanel();
 void DrawVisualizationWindow();
 void DrawEvolutionPlot();
+
+void DrawErrorPopup();
+void loadErrorTexture();

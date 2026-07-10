@@ -1,4 +1,6 @@
 #include "GraphData.h"
+#include "globals.h"
+#include "Gui.h"
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -7,13 +9,13 @@
 bool loadFromFile(const std::string& filename, Graph& outGraph) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Ошибка: не удалось открыть файл " << filename << std::endl;
+        showError("Ошибка: не удалось открыть файл " + filename);
         return false;
     }
 
     int V, E;
     if (!(file >> V >> E)) {
-        std::cerr << "Ошибка: некорректный формат файла (ожидались V и E)" << std::endl;
+        showError("Ошибка: некорректный формат файла (ожидались V и E)");
         return false;
     }
 
@@ -24,7 +26,7 @@ bool loadFromFile(const std::string& filename, Graph& outGraph) {
     for (int i = 0; i < E; ++i) {
         int u, v, w;
         if (!(file >> u >> v >> w)) {
-            std::cerr << "Ошибка: неполные данные ребра на строке " << (i+2) << std::endl;
+            showError("Ошибка: неполные данные ребра на строке " + std::to_string(i+2));
             return false;
         }
         outGraph.edges.push_back({u, v, static_cast<double>(w)});

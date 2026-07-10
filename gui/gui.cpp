@@ -5,6 +5,32 @@
 #include <implot.h>
 #include <iostream>
 #include <random>
+#include <queue>
+#include <GL/gl.h>
+#include "stb_image.h"
+
+
+bool isGraphConnected() {
+    int n = manualVertexCount;
+    if (n == 0) return false;
+    std::vector<bool> visited(n, false);
+    std::queue<int> q;
+    q.push(0);
+    visited[0] = true;
+    while (!q.empty()) {
+        int v = q.front(); q.pop();
+        for (int u = 0; u < n; ++u) {
+            if (manualMatrix[v][u] > 0 && !visited[u]) {
+                visited[u] = true;
+                q.push(u);
+            }
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        if (!visited[i]) return false;
+    }
+    return true;
+}
 
 void initTestTrees() {
     testTrees.clear();
@@ -456,31 +482,29 @@ void DrawManualInputWindow() {
                 for (int j = i + 1; j < manualVertexCount; ++j)
                     if (manualMatrix[i][j] > 0) { hasEdge = true; break; }
             if (!hasEdge) {
-                statusMessage = "Ошибка: граф не может быть пустым. Добавьте хотя бы одно ребро с весом > 0.";
-                ImGui::OpenPopup("Ошибка");
+                showError("Граф не может быть пустым. Добавьте хотя бы одно ребро с весом > 0.");
             } else {
-                currentGraph.vertexCount = manualVertexCount;
-                currentGraph.edges.clear();
-                for (int i = 0; i < manualVertexCount; ++i)
-                    for (int j = i + 1; j < manualVertexCount; ++j)
-                        if (manualMatrix[i][j] > 0) {
-                            Edge e{i, j, manualMatrix[i][j]};
-                            currentGraph.edges.push_back(e);
-                        }
-                vertexCount = manualVertexCount;
-                edgeCount = (int)currentGraph.edges.size();
-                statusMessage = "Граф получен вручную";
-                showManualInput = false;
+                if (isGraphConnected()){
+                    currentGraph.vertexCount = manualVertexCount;
+                    currentGraph.edges.clear();
+                    for (int i = 0; i < manualVertexCount; ++i)
+                        for (int j = i + 1; j < manualVertexCount; ++j)
+                            if (manualMatrix[i][j] > 0) {
+                                Edge e{i, j, manualMatrix[i][j]};
+                                currentGraph.edges.push_back(e);
+                            }
+                    vertexCount = manualVertexCount;
+                    edgeCount = (int)currentGraph.edges.size();
+                    statusMessage = "Граф получен вручную";
+                    showManualInput = false;                                    
+                } else {
+                    showError("Граф должен быть связным для поиска мод");
+                }
+
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("Отмена")) showManualInput = false;
-
-        if (ImGui::BeginPopupModal("Ошибка", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("%s", statusMessage.c_str());
-            if (ImGui::Button("OK")) ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-        }
     }
     ImGui::End();
 }
@@ -505,4 +529,69 @@ void DrawEvolutionPlot()
     }
 
     ImGui::End();
+}
+
+void loadErrorTexture() {
+    int width, height, channels;
+    // Попробуйте разные пути
+    const char* paths[] = {
+        "../png/error.jpg"
+    };
+    unsigned char* data = nullptr;
+    for (const char* path : paths) {
+        data = stbi_load(path, &width, &height, &channels, 4);
+        if (data) {
+            std::cout << "Картинка загружена: " << path << std::endl;
+            break;
+        }
+    }
+    if (data) {
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        stbi_image_free(data);
+        errorTexture = (ImTextureID)(uintptr_t)texture;
+        errorTextureLoaded = true;
+        std::cout << "Текстура создана, ID: " << texture << std::endl;
+    } else {
+        errorTexture = 0;
+        errorTextureLoaded = false;
+        std::cout << "Не удалось загрузить картинку ни по одному из путей" << std::endl;
+    }
+}
+
+void DrawErrorPopup() {
+    if (!showErrorPopup) return;
+
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(300, 100), ImVec2(600, 400));
+
+    if (ImGui::Begin("Ошибка", &showErrorPopup, 
+                     ImGuiWindowFlags_AlwaysAutoResize |
+                     ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoCollapse))
+    {
+        if (errorTextureLoaded && errorTexture != 0) {
+            ImGui::Image(errorTexture, ImVec2(100, 100));
+            ImGui::SameLine();
+            float remainingWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + remainingWidth);
+            ImGui::Text("%s", errorMessage.c_str());
+            ImGui::PopTextWrapPos();
+        } else {
+            float wrapWidth = ImGui::GetContentRegionAvail().x * 0.95f;
+            ImGui::PushTextWrapPos(wrapWidth);
+            ImGui::Text("%s", errorMessage.c_str());
+            ImGui::PopTextWrapPos();
+        }
+
+        ImGui::Separator();
+        if (ImGui::Button("OK")) {
+            showErrorPopup = false;
+        }
+        ImGui::End();
+    }
 }
