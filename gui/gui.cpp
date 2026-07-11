@@ -188,6 +188,7 @@ void DrawControlPanel()
         ga.setMutationProbability(mutationProb);
         ga.setCrossoverProbability(crossoverProb);
         ga.setMaxGenerations(maxGenerations);
+        ga.setMaxStagnation(noImprovementLimit);
         ga.initialize();  // создаёт начальную популяцию
 
         // --- Обновляем данные из алгоритма ---
@@ -236,6 +237,7 @@ void DrawControlPanel()
         ga.setMutationProbability(mutationProb);
         ga.setCrossoverProbability(crossoverProb);
         ga.setMaxGenerations(maxGenerations);
+        ga.setMaxStagnation(noImprovementLimit);
         ga.initialize();
 
         currentGeneration = ga.getCurrentGeneration();
@@ -282,6 +284,7 @@ void DrawControlPanel()
                     ga.setMutationProbability(mutationProb);
                     ga.setCrossoverProbability(crossoverProb);
                     ga.setMaxGenerations(maxGenerations);
+                    ga.setMaxStagnation(noImprovementLimit);
                     ga.initialize();
                 }
                 isAlgorithmRunning = true;
@@ -343,6 +346,7 @@ void DrawControlPanel()
                     ga.setMutationProbability(mutationProb);
                     ga.setCrossoverProbability(crossoverProb);
                     ga.setMaxGenerations(maxGenerations);
+                    ga.setMaxStagnation(noImprovementLimit);
                     ga.initialize();
                     currentGeneration = ga.getCurrentGeneration();
                     bestWeight = ga.getBestIndividual().weight;

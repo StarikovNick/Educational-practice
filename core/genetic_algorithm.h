@@ -20,6 +20,7 @@ public:
     void setMutationProbability(double probability);
     void setCrossoverProbability(double probability);
     void setMaxGenerations(int generations);
+    void setMaxStagnation(int generations);
     void setTournamentSize(int size);
 
     // Получение результатов
@@ -69,6 +70,8 @@ private:
     int generation = 0;
     int populationSize = 100;
     int maxGenerations = 500;
+    int maxStagnation = 50;
+    int stagnationCounter = 0;
     int tournamentSize = 3;
 
     double mutationProbability = 0.05;

@@ -24,6 +24,10 @@ void GeneticAlgorithm::setMaxGenerations(int generations)
 {
     maxGenerations = generations;
 }
+void GeneticAlgorithm::setMaxStagnation(int generations)
+{
+    maxStagnation = generations;
+}
 void GeneticAlgorithm::setTournamentSize(int size)
 {
     tournamentSize = size;
@@ -63,6 +67,7 @@ void GeneticAlgorithm::initialize()
     bestIndividual.edges.clear();
     bestIndividual.weight = 0;
     bestIndividual.fitness = 0;
+    stagnationCounter = 0;
 
     createInitialPopulation();
     evaluatePopulation();
@@ -72,8 +77,6 @@ void GeneticAlgorithm::initialize()
 // Создание начальной популяции
 void GeneticAlgorithm::createInitialPopulation()
 {
-    population.clear();
-
     std::vector<int> edgeIndices(graph.edges.size());
 
     std::iota(edgeIndices.begin(), edgeIndices.end(), 0);
@@ -95,9 +98,6 @@ void GeneticAlgorithm::createInitialPopulation()
             }
         }
 
-        individual.weight = calculateWeight(individual);
-        individual.fitness = calculateFitness(individual);
-
         population.push_back(individual);
     }
 }
@@ -116,13 +116,24 @@ void GeneticAlgorithm::updateBestIndividual()
     if (population.empty())
         return;
 
-    if (generation == 0 && bestIndividual.edges.empty())
+    bool improved = false;
+
+    if (generation == 0 && bestIndividual.edges.empty()) {
         bestIndividual = population.front();
+        improved = true;
+    }
 
     for (const Individual& individual : population) {
-        if (individual.fitness < bestIndividual.fitness)
+        if (individual.fitness < bestIndividual.fitness) {
             bestIndividual = individual;
+            improved = true;
+        }
     }
+
+    if (improved)
+        stagnationCounter = 0;
+    else
+        stagnationCounter++;
 }
 
 // Вычисление веса
@@ -163,6 +174,11 @@ Individual GeneticAlgorithm::selection()
 std::pair<Individual, Individual> GeneticAlgorithm::crossover(
     const Individual& parent1, const Individual& parent2)
 {
+    std::bernoulli_distribution crossoverDistribution(crossoverProbability);
+
+    if (!crossoverDistribution(randomGenerator))
+        return {parent1, parent2};
+
     Individual child1;
     Individual child2;
 
@@ -201,10 +217,6 @@ void GeneticAlgorithm::mutate(Individual& individual)
         0, static_cast<int>(individual.edges.size()) - 1);
     int removeIndex = removeDistribution(randomGenerator);
     individual.edges.erase(individual.edges.begin() + removeIndex);
-
-    std::uniform_int_distribution<int> edgeDistribution(
-        0, static_cast<int>(graph.edges.size()) - 1);
-    individual.edges.push_back(edgeDistribution(randomGenerator));
 
     repair(individual);
 }
@@ -276,11 +288,9 @@ bool GeneticAlgorithm::doOneStep()
         Individual child2 = parent2;
 
         // Скрещивание
-        if (crossoverDistribution(randomGenerator)) {
-            auto children = crossover(parent1, parent2);
-            child1 = std::move(children.first);
-            child2 = std::move(children.second);
-        }
+        auto children = crossover(parent1, parent2);
+        child1 = std::move(children.first);
+        child2 = std::move(children.second);
 
         // Мутация
         mutate(child1);
@@ -309,8 +319,8 @@ void GeneticAlgorithm::run()
     while (doOneStep()) {}
 }
 
-// Критерий сотановки
+// Критерий остановки
 bool GeneticAlgorithm::isFinished() const
 {
-    return generation >= maxGenerations;
+    return generation >= maxGenerations || stagnationCounter >= maxStagnation;
 }
