@@ -46,10 +46,10 @@ const std::vector<double>& GeneticAlgorithm::getFitnessHistory() const
 {
     return fitnessHistory;
 }
-const std::vector<std::vector<Individual>>&
-GeneticAlgorithm::getPopulationHistory() const
+const std::vector<GenerationState>&
+GeneticAlgorithm::getGenerationHistory() const
 {
-    return populationHistory;
+    return generationHistory;
 }
 int GeneticAlgorithm::getCurrentGeneration() const
 {
@@ -63,7 +63,7 @@ void GeneticAlgorithm::initialize()
     
     population.clear();
     fitnessHistory.clear();
-    populationHistory.clear();
+    generationHistory.clear();
     bestIndividual.edges.clear();
     bestIndividual.weight = 0;
     bestIndividual.fitness = 0;
@@ -199,9 +199,6 @@ std::pair<Individual, Individual> GeneticAlgorithm::crossover(
         }
     }
 
-    repair(child1);
-    repair(child2);
-
     return {child1, child2};
 }
 
@@ -217,8 +214,6 @@ void GeneticAlgorithm::mutate(Individual& individual)
         0, static_cast<int>(individual.edges.size()) - 1);
     int removeIndex = removeDistribution(randomGenerator);
     individual.edges.erase(individual.edges.begin() + removeIndex);
-
-    repair(individual);
 }
 
 // Функция исправления
@@ -273,8 +268,13 @@ bool GeneticAlgorithm::doOneStep()
     if (isFinished())
         return false;
 
-    // Сохранение текущего поколения
-    populationHistory.push_back(population);
+    // Сохранение текущего состояния
+    GenerationState state;
+    state.population = population;
+    state.bestIndividual = bestIndividual;
+    state.generation = generation;
+    state.stagnationCounter = stagnationCounter;
+    generationHistory.push_back(std::move(state));
 
     std::vector<Individual> newPopulation;
     std::bernoulli_distribution crossoverDistribution(crossoverProbability);
@@ -295,6 +295,10 @@ bool GeneticAlgorithm::doOneStep()
         // Мутация
         mutate(child1);
         mutate(child2);
+
+        // Исправление
+        repair(child1);
+        repair(child2);
 
         newPopulation.push_back(std::move(child1));
 
@@ -317,6 +321,28 @@ bool GeneticAlgorithm::doOneStep()
 void GeneticAlgorithm::run()
 {
     while (doOneStep()) {}
+}
+
+// Шаг назад по алгоритму
+bool GeneticAlgorithm::stepBack()
+{
+    if (generationHistory.empty())
+        return false;
+
+    GenerationState state = std::move(generationHistory.back());
+
+    generationHistory.pop_back();
+
+    population = std::move(state.population);
+    bestIndividual = std::move(state.bestIndividual);
+
+    generation = state.generation;
+    stagnationCounter = state.stagnationCounter;
+
+    if (!fitnessHistory.empty())
+        fitnessHistory.pop_back();
+
+    return true;
 }
 
 // Критерий остановки
