@@ -10,7 +10,27 @@
 #include "stb_image.h"
 
 
-void prepareAlg(){
+void update() {
+    currentGeneration = ga.getCurrentGeneration();
+    bestWeight = ga.getBestIndividual().weight;
+    bestFitness = ga.getBestIndividual().fitness;
+    selectedEdges = ga.getBestIndividual().edges;
+    weightHistory = ga.getFitnessHistory();
+}
+
+void initializeAlgorithm() {
+    ga.setGraph(currentGraph);
+    ga.setPopulationSize(populationSize);
+    ga.setTournamentSize(tournamentSize);
+    ga.setMutationProbability(mutationProb);
+    ga.setCrossoverProbability(crossoverProb);
+    ga.setMaxGenerations(maxGenerations);
+    ga.setMaxStagnation(noImprovementLimit);
+
+    ga.initialize();
+}
+
+void prepareAlg() {
         vertexCount = manualVertexCount;
         edgeCount = (int)currentGraph.edges.size();
         selectedEdges.clear();
@@ -22,21 +42,8 @@ void prepareAlg(){
         isAlgorithmRunning = false;
         isAlgorithmFinished = false;
 
-        ga.setGraph(currentGraph);
-        ga.setPopulationSize(populationSize);
-        ga.setTournamentSize(tournamentSize);
-        ga.setMutationProbability(mutationProb);
-        ga.setCrossoverProbability(crossoverProb);
-        ga.setMaxGenerations(maxGenerations);
-        ga.setMaxStagnation(noImprovementLimit);
-        ga.initialize();
-
-        currentGeneration = ga.getCurrentGeneration();
-        bestWeight = ga.getBestIndividual().weight;
-        bestFitness = ga.getBestIndividual().fitness;
-        weightHistory = ga.getFitnessHistory();
-        selectedEdges = ga.getBestIndividual().edges;
-        const auto& bestInd = ga.getBestIndividual();
+        initializeAlgorithm();
+        update();
 }
 
 bool isGraphConnected() {
@@ -236,16 +243,7 @@ void DrawControlPanel(){
         if (ImGui::Button("Запуск")) {
             if (currentGraph.vertexCount > 0) {
                 // Если алгоритм не инициализирован, инициализируем
-                if (ga.getCurrentPopulation().empty()) {
-                    ga.setGraph(currentGraph);
-                    ga.setPopulationSize(populationSize);
-                    ga.setTournamentSize(tournamentSize);
-                    ga.setMutationProbability(mutationProb);
-                    ga.setCrossoverProbability(crossoverProb);
-                    ga.setMaxGenerations(maxGenerations);
-                    ga.setMaxStagnation(noImprovementLimit);
-                    ga.initialize();
-                }
+                if (ga.getCurrentPopulation().empty()) initializeAlgorithm();
                 isAlgorithmRunning = true;
                 isAlgorithmFinished = false;
                 std::cout << "=== Starting genetic algorithm ===" << std::endl;
@@ -258,20 +256,12 @@ void DrawControlPanel(){
 
         if (ImGui::Button("Шаг вперед")) {
             if (ga.doOneStep()) {
-                currentGeneration = ga.getCurrentGeneration();
-                bestWeight = ga.getBestIndividual().weight;
-                bestFitness = ga.getBestIndividual().fitness;
-                selectedEdges = ga.getBestIndividual().edges;
-                weightHistory = ga.getFitnessHistory();
+                update();
             } else if (isAlgorithmRunning) {
                 isAlgorithmFinished = true;
                 isAlgorithmRunning = false;
 
-                currentGeneration = ga.getCurrentGeneration();
-                bestWeight = ga.getBestIndividual().weight;
-                bestFitness = ga.getBestIndividual().fitness;
-                selectedEdges = ga.getBestIndividual().edges;
-                weightHistory = ga.getFitnessHistory();
+                update();
 
                 statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
             } else {
@@ -283,11 +273,7 @@ void DrawControlPanel(){
 
         if (ImGui::Button("Шаг назад")) {
             if (ga.stepBack()) {
-                currentGeneration = ga.getCurrentGeneration();
-                bestWeight = ga.getBestIndividual().weight;
-                bestFitness = ga.getBestIndividual().fitness;
-                selectedEdges = ga.getBestIndividual().edges;
-                weightHistory = ga.getFitnessHistory();
+                update();
 
                 isAlgorithmFinished = false;
                 isAlgorithmRunning = true;
@@ -301,11 +287,7 @@ void DrawControlPanel(){
             ga.run();
 
             // Обновляем после завершения
-            currentGeneration = ga.getCurrentGeneration();
-            bestWeight = ga.getBestIndividual().weight;
-            bestFitness = ga.getBestIndividual().fitness;
-            selectedEdges = ga.getBestIndividual().edges;
-            weightHistory = ga.getFitnessHistory();
+            update();
 
             isAlgorithmFinished = true;
             isAlgorithmRunning = false;
@@ -326,14 +308,7 @@ void DrawControlPanel(){
 
                 if (currentGraph.vertexCount > 0) {
                     // Переинициализация ГА
-                    ga.setGraph(currentGraph);
-                    ga.setPopulationSize(populationSize);
-                    ga.setTournamentSize(tournamentSize);
-                    ga.setMutationProbability(mutationProb);
-                    ga.setCrossoverProbability(crossoverProb);
-                    ga.setMaxGenerations(maxGenerations);
-                    ga.setMaxStagnation(noImprovementLimit);
-                    ga.initialize();
+                    initializeAlgorithm();
 
                     weightHistory = ga.getFitnessHistory();
 
