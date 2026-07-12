@@ -25,7 +25,7 @@ bool isAlgorithmFinished = false;
 std::string statusMessage = "Готов к работе";
 std::vector<double> weightHistory;
 std::vector<std::string> populationDisplay;
-std::string bestChromosome = "{0, 3, 5, 7, 8}";
+std::string bestChromosome = "{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}";
 bool showManualInput = false;
 double manualMatrix[10][10] = {};
 int manualVertexCount = 5;
@@ -41,3 +41,8 @@ void showError(const std::string& msg) {
     errorMessage = msg;
     showErrorPopup = true;
 }
+
+int idxPopulation = 0;
+bool showRandomInput = false;
+int randomVertexCount = 5;
+float randomCoefFull = 1.0;

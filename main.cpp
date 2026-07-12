@@ -82,6 +82,7 @@ int main()
         DrawEvolutionPlot();
         DrawManualInputWindow();
         DrawErrorPopup();
+        DrawRandomInputWindow();
 
         ImGui::Render();
 

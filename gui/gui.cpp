@@ -10,6 +10,68 @@
 #include "stb_image.h"
 
 
+void updateFromHistory(int index) {
+    auto& history = ga.getPopulationHistory();
+    if (index < 0 || index >= (int)history.size()) return;
+    const auto& pop = history[index];
+    if (pop.empty()) return;
+
+    // Находим лучшую особь в популяции
+    const Individual* best = &pop[0];
+    for (const auto& ind : pop) {
+        if (ind.weight < best->weight) best = &ind;
+    }
+
+    // Обновляем глобальные переменные
+    bestWeight = best->weight;
+    bestFitness = best->fitness;
+    selectedEdges = best->edges;
+    currentGeneration = index; // поколение соответствует индексу в истории
+
+    // Формируем строку хромосомы
+    bestChromosome = "{";
+    for (size_t i = 0; i < best->edges.size(); ++i) {
+        bestChromosome += std::to_string(best->edges[i]);
+        if (i + 1 < best->edges.size()) bestChromosome += ", ";
+    }
+    bestChromosome += "}";
+
+    // Обновляем статус
+    statusMessage = "Просмотр поколения " + std::to_string(index);
+}
+
+
+void prepareAlg(){
+        vertexCount = manualVertexCount;
+        edgeCount = (int)currentGraph.edges.size();
+        selectedEdges.clear();
+        weightHistory.clear();
+        bestChromosome = "{}";
+        bestWeight = 0.0;
+        bestFitness = 0.0;
+        currentGeneration = 0;
+        isAlgorithmRunning = false;
+        isAlgorithmFinished = false;
+
+        ga.setGraph(currentGraph);
+        ga.setPopulationSize(populationSize);
+        ga.setTournamentSize(tournamentSize);
+        ga.setMutationProbability(mutationProb);
+        ga.setCrossoverProbability(crossoverProb);
+        ga.setMaxGenerations(maxGenerations);
+        ga.setMaxStagnation(noImprovementLimit);
+        ga.initialize();
+        idxPopulation = 0;
+        updateFromHistory(0);
+
+        currentGeneration = ga.getCurrentGeneration();
+        bestWeight = ga.getBestIndividual().weight;
+        bestFitness = ga.getBestIndividual().fitness;
+        weightHistory = ga.getFitnessHistory();
+        selectedEdges = ga.getBestIndividual().edges;
+        const auto& bestInd = ga.getBestIndividual();
+}
+
 bool isGraphConnected() {
     int n = manualVertexCount;
     if (n == 0) return false;
@@ -157,104 +219,34 @@ void drawGraphVisualization() {
 
 }
 
-void DrawControlPanel()
-{
+void DrawControlPanel(){
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(350, 400), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(370, 415), ImGuiCond_Always);
     ImGui::Begin("Управление", nullptr, ImGuiWindowFlags_NoResize);
 
     ImGui::Text("Данные графа");
     ImGui::Separator();
     if (ImGui::Button("Загрузить из файла")) {
-    std::string path = "../file/graph.txt";
-    if (loadFromFile(path, currentGraph)) {
-        // --- Обновляем глобальные переменные ---
-        vertexCount = currentGraph.vertexCount;
-        edgeCount = (int)currentGraph.edges.size();
-        selectedEdges.clear();
-        weightHistory.clear();
-        bestChromosome = "{}";
-        bestWeight = 0.0;
-        bestFitness = 0.0;
-        currentGeneration = 0;
-        isAlgorithmRunning = false;
-        isAlgorithmFinished = false;
-        statusMessage = "Граф загружен! Вершин: " + std::to_string(vertexCount) + ", рёбер: " + std::to_string(edgeCount);
-
-        // --- Инициализация генетического алгоритма ---
-        ga.setGraph(currentGraph);
-        ga.setPopulationSize(populationSize);
-        ga.setTournamentSize(tournamentSize);
-        ga.setMutationProbability(mutationProb);
-        ga.setCrossoverProbability(crossoverProb);
-        ga.setMaxGenerations(maxGenerations);
-        ga.setMaxStagnation(noImprovementLimit);
-        ga.initialize();  // создаёт начальную популяцию
-
-        // --- Обновляем данные из алгоритма ---
-        currentGeneration = ga.getCurrentGeneration();
-        bestWeight = ga.getBestIndividual().weight;
-        bestFitness = ga.getBestIndividual().fitness;
-        // Копируем историю (пока пустая, но на будущее)
-        weightHistory = ga.getFitnessHistory(); 
-        // Запоминаем лучшую особь для подсветки
-        selectedEdges = ga.getBestIndividual().edges;
-        // Формируем строку хромосомы
-        const auto& bestInd = ga.getBestIndividual();
-        bestChromosome = "{";
-        for (size_t i = 0; i < bestInd.edges.size(); ++i) {
-            bestChromosome += std::to_string(bestInd.edges[i]);
-            if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
+        std::string path = "../file/graph.txt";
+        if (loadFromFile(path, currentGraph)) {
+            // --- Обновляем глобальные переменные ---
+            vertexCount = currentGraph.vertexCount;
+            edgeCount = (int)currentGraph.edges.size();
+            prepareAlg();
+            statusMessage = "Граф загружен из файла и ГА инициализирован";
+        } else {
+            statusMessage = "Ошибка загрузки файла! Проверьте путь и формат.";
         }
-        bestChromosome += "}";
-
-        statusMessage = "Граф загружен и ГА инициализирован";
     }
-    else {
-        statusMessage = "Ошибка загрузки файла! Проверьте путь и формат.";
-    }
-}
     ImGui::SameLine();
     if (ImGui::Button("Случайная генерация")) {
-        generateRandomGraphAuto(currentGraph);
-
-        vertexCount = currentGraph.vertexCount;
-        edgeCount = (int)currentGraph.edges.size();
-        selectedEdges.clear();
-        weightHistory.clear();
-        bestChromosome = "{}";
-        bestWeight = 0.0;
-        bestFitness = 0.0;
-        currentGeneration = 0;
-        isAlgorithmRunning = false;
-        isAlgorithmFinished = false;
-        statusMessage = "Случайный граф: " + std::to_string(vertexCount) + " вершин, " + std::to_string(edgeCount) + " рёбер";
-
-        // --- Инициализация генетического алгоритма ---
-        ga.setGraph(currentGraph);
-        ga.setPopulationSize(populationSize);
-        ga.setTournamentSize(tournamentSize);
-        ga.setMutationProbability(mutationProb);
-        ga.setCrossoverProbability(crossoverProb);
-        ga.setMaxGenerations(maxGenerations);
-        ga.setMaxStagnation(noImprovementLimit);
-        ga.initialize();
-
-        currentGeneration = ga.getCurrentGeneration();
-        bestWeight = ga.getBestIndividual().weight;
-        bestFitness = ga.getBestIndividual().fitness;
-        weightHistory = ga.getFitnessHistory();
-        selectedEdges = ga.getBestIndividual().edges;
-        const auto& bestInd = ga.getBestIndividual();
-        bestChromosome = "{";
-        for (size_t i = 0; i < bestInd.edges.size(); ++i) {
-            bestChromosome += std::to_string(bestInd.edges[i]);
-            if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
-        }
-        bestChromosome += "}";
-
-        statusMessage = "Случайный граф сгенерирован и ГА инициализирован";
-}
+        showRandomInput = true;
+    }
+    if (ImGui::Button("Ручной ввод")) {
+        showManualInput = true;
+        manualVertexCount = 5;
+        memset(manualMatrix, 0, sizeof(manualMatrix));
+    }
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Text("Параметры ГА");
@@ -274,7 +266,7 @@ void DrawControlPanel()
 
     if (!isAlgorithmRunning && !isAlgorithmFinished) {
     // Кнопка "Запустить алгоритм" – полный прогон
-        if (ImGui::Button("Запустить алгоритм")) {
+        if (ImGui::Button("Запуск")) {
             if (currentGraph.vertexCount > 0) {
                 // Если алгоритм не инициализирован, инициализируем
                 if (ga.getCurrentPopulation().empty()) {
@@ -290,56 +282,85 @@ void DrawControlPanel()
                 isAlgorithmRunning = true;
                 isAlgorithmFinished = false;
                 std::cout << "=== Starting genetic algorithm ===" << std::endl;
-                // Запускаем полный прогон
-                while (!ga.isFinished()) {
-                    ga.doOneStep();
-                    Individual best = ga.getBestIndividual();
-                    // Вывод информации о текущем поколении
-                    std::cout << "Generation " << ga.getCurrentGeneration() << " | Best weight: " << best.weight << " | Best fitness: " << best.fitness << std::endl;
-                    std::cout << "Best individual:" << '\n';
-                    for (int edgeIndex : best.edges) {
-                        const Edge& edge = currentGraph.edges[edgeIndex];
-                        std::cout << edge.from << " " << edge.to << " " << edge.weight << '\n';
-                    }
-                    std::cout << '\n';
-                }
-                std::cout << "=== Algorithm finished. Total steps: "  << ga.getCurrentGeneration() << " ===" << std::endl;
-                // Обновляем данные после завершения
-                currentGeneration = ga.getCurrentGeneration();
-                bestWeight = ga.getBestIndividual().weight;
-                bestFitness = ga.getBestIndividual().fitness;
-                weightHistory = ga.getFitnessHistory();
-                selectedEdges = ga.getBestIndividual().edges;
-                const auto& bestInd = ga.getBestIndividual();
-                bestChromosome = "{";
-                for (size_t i = 0; i < bestInd.edges.size(); ++i) {
-                    bestChromosome += std::to_string(bestInd.edges[i]);
-                    if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
-                }
-                bestChromosome += "}";
-                isAlgorithmFinished = true;
-                isAlgorithmRunning = false;
-                statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
-            }
-            else {
+            } else {
                 statusMessage = "Ошибка: сначала загрузите или сгенерируйте граф";
+                showError(statusMessage);
             }
         }
-    } 
-    else {
+    } else {
+
+        if (ImGui::Button("Шаг вперед")) {
+            auto& history = ga.getPopulationHistory();
+            if (history.empty()) {
+                // История пуста – делаем первый шаг
+                if (!ga.isFinished()) {
+                    ga.doOneStep();
+                    weightHistory = ga.getFitnessHistory();
+                    idxPopulation = (int)history.size() - 1;
+                    if (idxPopulation >= 0) updateFromHistory(idxPopulation);
+                } else {
+                    showError("Алгоритм уже завершен, шагов нет");
+                }
+            } else if (idxPopulation < (int)history.size() - 1) {
+                // Есть сохраненные поколения вперед
+                idxPopulation++;
+                weightHistory.push_back(ga.getFitnessHistory()[idxPopulation]);
+                updateFromHistory(idxPopulation);
+            } else {
+                // Мы на последнем поколении – делаем новый шаг, если алгоритм не завершен
+                if (!ga.isFinished()) {
+                    ga.doOneStep();
+                    weightHistory = ga.getFitnessHistory();
+                    idxPopulation = (int)history.size() - 1;
+                    if (idxPopulation >= 0) updateFromHistory(idxPopulation);
+                } else {
+                    isAlgorithmFinished = true;
+                    isAlgorithmRunning = false;
+                    showError("Алгоритм завершен, больше шагов нет");
+                }
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Шаг назад")) {
+            auto& history = ga.getPopulationHistory();
+            if (idxPopulation > 0) {
+                idxPopulation--;
+                updateFromHistory(idxPopulation);
+                weightHistory.pop_back();
+            } else {
+                showError("Вы на начальном шаге");
+            }
+        }
+        ImGui::SameLine();
+        
+        if (ImGui::Button("Завершить")) {
+            while (!ga.isFinished()) {
+                ga.doOneStep();
+            }
+            // Обновляем после завершения
+            idxPopulation = (int)ga.getPopulationHistory().size() - 1;
+            if (idxPopulation >= 0) updateFromHistory(idxPopulation);
+            weightHistory = ga.getFitnessHistory();
+            isAlgorithmFinished = true;
+            isAlgorithmRunning = false;
+            statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
+        }
+
+        
         // Если алгоритм уже завершён, показываем кнопку "Сброс"
         if (isAlgorithmFinished) {
             if (ImGui::Button("Сброс")) {
-                // Сброс состояния и переинициализация
                 isAlgorithmRunning = false;
                 isAlgorithmFinished = false;
                 currentGeneration = 0;
-                bestFitness = 0.0;
-                bestWeight = 0.0;
                 weightHistory.clear();
                 selectedEdges.clear();
                 bestChromosome = "{}";
+
                 if (currentGraph.vertexCount > 0) {
+                    // Переинициализация ГА
                     ga.setGraph(currentGraph);
                     ga.setPopulationSize(populationSize);
                     ga.setTournamentSize(tournamentSize);
@@ -348,21 +369,15 @@ void DrawControlPanel()
                     ga.setMaxGenerations(maxGenerations);
                     ga.setMaxStagnation(noImprovementLimit);
                     ga.initialize();
-                    currentGeneration = ga.getCurrentGeneration();
-                    bestWeight = ga.getBestIndividual().weight;
-                    bestFitness = ga.getBestIndividual().fitness;
+
+                    // Обновляем индекс и состояние из истории (начинаем с нулевого поколения)
+                    idxPopulation = 0;
+                    updateFromHistory(0);  // обновляет bestWeight, bestFitness, selectedEdges, bestChromosome, currentGeneration
+
                     weightHistory = ga.getFitnessHistory();
-                    selectedEdges = ga.getBestIndividual().edges;
-                    const auto& bestInd = ga.getBestIndividual();
-                    bestChromosome = "{";
-                    for (size_t i = 0; i < bestInd.edges.size(); ++i) {
-                        bestChromosome += std::to_string(bestInd.edges[i]);
-                        if (i + 1 < bestInd.edges.size()) bestChromosome += ", ";
-                    }
-                    bestChromosome += "}";
+
                     statusMessage = "Состояние сброшено, алгоритм переинициализирован";
-                } 
-                else {
+                } else {
                     statusMessage = "Граф отсутствует, загрузите граф";
                 }
             }
@@ -373,20 +388,28 @@ void DrawControlPanel()
 
 void DrawInfoPanel()
 {
-    ImGui::SetNextWindowPos(ImVec2(370, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(350, 400), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(390, 10), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(350, 415), ImGuiCond_Always);
     ImGui::Begin("Информация", nullptr, ImGuiWindowFlags_NoResize);
 
+    ImGui::Separator();
+    ImGui::Text("Параметры графа");
+    ImGui::Separator();
+
     ImGui::Text("Вершин: %d", vertexCount);
-    ImGui::Text("Поколение: %d", currentGeneration);
-    ImGui::Text("Лучшая особь: %s", bestChromosome.c_str());
-    ImGui::Separator();
     ImGui::Text("Рёбер: %d", edgeCount);
-    ImGui::Text("Лучший вес: %.2f", bestWeight);
-    ImGui::Text("Статус: %s", statusMessage.c_str());
+
     ImGui::Separator();
+    ImGui::Text("Параметры алгоритма");
+    ImGui::Separator();
+
+    ImGui::Text("Поколение: %d", currentGeneration);
     ImGui::Text("Популяция: %d", populationSize);
+    //ImGui::PushTextWrapPos(350);
+    //ImGui::Text("Лучшая особь в поколении: %s", bestChromosome.c_str());
+    ImGui::Text("Лучший вес в поколении: %.2f", bestWeight);
     ImGui::Text("Лучшая МОД по весу: %.2f", bestFitness);
+
     ImGui::Separator();
     if (isAlgorithmRunning) {
         ImGui::Text("Состояние: %s", isAlgorithmPaused ? "Пауза" : "Выполнение");
@@ -395,26 +418,29 @@ void DrawInfoPanel()
     } else {
         ImGui::Text("Состояние: Ожидание");
     }
+    ImGui::NewLine();
     ImGui::Separator();
-
-    ImGui::SameLine();
-    if (ImGui::Button("Ручной ввод")) {
-        showManualInput = true;
-        manualVertexCount = 5;
-        memset(manualMatrix, 0, sizeof(manualMatrix));
-    }
+    ImGui::PushTextWrapPos(350);
+    ImGui::Text("Статус: %s", statusMessage.c_str());
+    ImGui::NewLine();
+    ImGui::Separator();
 
     ImGui::End();
 }
 
 void DrawVisualizationWindow()
 {
-    ImGui::SetNextWindowPos(ImVec2(730, 10), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(660, 880), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(750, 10), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(640, 880), ImGuiCond_Always);
     ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
-    
-    const auto& population = ga.getCurrentPopulation();
-    int totalIndividuals = (int)population.size();
+    int totalIndividuals;
+    std::vector<Individual> population;
+    if (ga.getPopulationHistory().empty()){
+        totalIndividuals = 0;
+    } else {
+        population = ga.getPopulationHistory()[idxPopulation];
+    }
+    totalIndividuals = (int)population.size();
     if (totalIndividuals > 0) {
         static int selectedIndividualIndex = 0;
         if (selectedIndividualIndex >= totalIndividuals)
@@ -437,6 +463,25 @@ void DrawVisualizationWindow()
     ImGui::Checkbox("Показывать дерево", &showTree);
     drawGraphVisualization();
 
+    ImGui::End();
+}
+
+void DrawRandomInputWindow(){
+    if (!showRandomInput) return;
+    ImGui::SetNextWindowSize(ImVec2(350, 120), ImGuiCond_Always);
+    if (ImGui::Begin("Параметры случайного графа", &showRandomInput, ImGuiWindowFlags_NoResize)) {
+        ImGui::PushItemWidth(100);
+        ImGui::InputInt("Количество вершин", &randomVertexCount);
+        if (randomVertexCount < 3) randomVertexCount = 3;
+        float minCoef = 2.0/randomVertexCount;
+        ImGui::SliderFloat("Коэфициент полноты графа", &randomCoefFull, minCoef, 1.0f, "%.2f");
+        if(ImGui::Button("Сохранить")) {
+            generateRandomGraphAuto(currentGraph);
+            prepareAlg();
+            statusMessage = "Граф получен из случайной генерации и ГА инициализирован";
+            showRandomInput = false;
+        }   
+    }
     ImGui::End();
 }
 
@@ -497,10 +542,9 @@ void DrawManualInputWindow() {
                                 Edge e{i, j, manualMatrix[i][j]};
                                 currentGraph.edges.push_back(e);
                             }
-                    vertexCount = manualVertexCount;
-                    edgeCount = (int)currentGraph.edges.size();
-                    statusMessage = "Граф получен вручную";
-                    showManualInput = false;                                    
+                    prepareAlg();
+                    statusMessage = "Граф загружен вручную и ГА инициализирован";
+                    showManualInput = false;
                 } else {
                     showError("Граф должен быть связным для поиска мод");
                 }
@@ -515,8 +559,8 @@ void DrawManualInputWindow() {
 
 void DrawEvolutionPlot()
 {
-    ImGui::SetNextWindowPos(ImVec2(10, 420), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(710, 470), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(10, 435), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(730, 455), ImGuiCond_Always);
     ImGui::Begin("График эволюции (вес МОД по поколениям)", nullptr, ImGuiWindowFlags_NoResize);
 
     ImGui::Text("Лучший вес на каждом поколении");

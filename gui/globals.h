@@ -41,3 +41,10 @@ extern ImTextureID errorTexture;
 extern bool errorTextureLoaded;
 
 void showError(const std::string& msg);
+
+extern int idxPopulation;
+
+extern bool showRandomInput;
+
+extern int randomVertexCount;
+extern float randomCoefFull;
