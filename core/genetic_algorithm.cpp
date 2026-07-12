@@ -72,6 +72,8 @@ void GeneticAlgorithm::initialize()
     createInitialPopulation();
     evaluatePopulation();
     updateBestIndividual();
+
+    fitnessHistory.push_back(bestIndividual.fitness);
 }
 
 // Создание начальной популяции
@@ -340,7 +342,7 @@ bool GeneticAlgorithm::stepBack()
     stagnationCounter = state.stagnationCounter;
 
     if (!fitnessHistory.empty())
-        fitnessHistory.pop_back();
+        fitnessHistory.resize(generation + 1);
 
     return true;
 }

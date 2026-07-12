@@ -10,37 +10,6 @@
 #include "stb_image.h"
 
 
-void updateFromHistory(int index) {
-    auto& history = ga.getPopulationHistory();
-    if (index < 0 || index >= (int)history.size()) return;
-    const auto& pop = history[index];
-    if (pop.empty()) return;
-
-    // Находим лучшую особь в популяции
-    const Individual* best = &pop[0];
-    for (const auto& ind : pop) {
-        if (ind.weight < best->weight) best = &ind;
-    }
-
-    // Обновляем глобальные переменные
-    bestWeight = best->weight;
-    bestFitness = best->fitness;
-    selectedEdges = best->edges;
-    currentGeneration = index; // поколение соответствует индексу в истории
-
-    // Формируем строку хромосомы
-    bestChromosome = "{";
-    for (size_t i = 0; i < best->edges.size(); ++i) {
-        bestChromosome += std::to_string(best->edges[i]);
-        if (i + 1 < best->edges.size()) bestChromosome += ", ";
-    }
-    bestChromosome += "}";
-
-    // Обновляем статус
-    statusMessage = "Просмотр поколения " + std::to_string(index);
-}
-
-
 void prepareAlg(){
         vertexCount = manualVertexCount;
         edgeCount = (int)currentGraph.edges.size();
@@ -61,8 +30,6 @@ void prepareAlg(){
         ga.setMaxGenerations(maxGenerations);
         ga.setMaxStagnation(noImprovementLimit);
         ga.initialize();
-        idxPopulation = 0;
-        updateFromHistory(0);
 
         currentGeneration = ga.getCurrentGeneration();
         bestWeight = ga.getBestIndividual().weight;
@@ -290,61 +257,59 @@ void DrawControlPanel(){
     } else {
 
         if (ImGui::Button("Шаг вперед")) {
-            auto& history = ga.getPopulationHistory();
-            if (history.empty()) {
-                // История пуста – делаем первый шаг
-                if (!ga.isFinished()) {
-                    ga.doOneStep();
-                    weightHistory = ga.getFitnessHistory();
-                    idxPopulation = (int)history.size() - 1;
-                    if (idxPopulation >= 0) updateFromHistory(idxPopulation);
-                } else {
-                    showError("Алгоритм уже завершен, шагов нет");
-                }
-            } else if (idxPopulation < (int)history.size() - 1) {
-                // Есть сохраненные поколения вперед
-                idxPopulation++;
-                weightHistory.push_back(ga.getFitnessHistory()[idxPopulation]);
-                updateFromHistory(idxPopulation);
+            if (ga.doOneStep()) {
+                currentGeneration = ga.getCurrentGeneration();
+                bestWeight = ga.getBestIndividual().weight;
+                bestFitness = ga.getBestIndividual().fitness;
+                selectedEdges = ga.getBestIndividual().edges;
+                weightHistory = ga.getFitnessHistory();
+            } else if (isAlgorithmRunning) {
+                isAlgorithmFinished = true;
+                isAlgorithmRunning = false;
+
+                currentGeneration = ga.getCurrentGeneration();
+                bestWeight = ga.getBestIndividual().weight;
+                bestFitness = ga.getBestIndividual().fitness;
+                selectedEdges = ga.getBestIndividual().edges;
+                weightHistory = ga.getFitnessHistory();
+
+                statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
             } else {
-                // Мы на последнем поколении – делаем новый шаг, если алгоритм не завершен
-                if (!ga.isFinished()) {
-                    ga.doOneStep();
-                    weightHistory = ga.getFitnessHistory();
-                    idxPopulation = (int)history.size() - 1;
-                    if (idxPopulation >= 0) updateFromHistory(idxPopulation);
-                } else {
-                    isAlgorithmFinished = true;
-                    isAlgorithmRunning = false;
-                    showError("Алгоритм завершен, больше шагов нет");
-                }
+                showError("Алгоритм завершен");
             }
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Шаг назад")) {
-            auto& history = ga.getPopulationHistory();
-            if (idxPopulation > 0) {
-                idxPopulation--;
-                updateFromHistory(idxPopulation);
-                weightHistory.pop_back();
+            if (ga.stepBack()) {
+                currentGeneration = ga.getCurrentGeneration();
+                bestWeight = ga.getBestIndividual().weight;
+                bestFitness = ga.getBestIndividual().fitness;
+                selectedEdges = ga.getBestIndividual().edges;
+                weightHistory = ga.getFitnessHistory();
+
+                isAlgorithmFinished = false;
+                isAlgorithmRunning = true;
             } else {
-                showError("Вы на начальном шаге");
+                showError("Вы на начальном поколении");
             }
         }
         ImGui::SameLine();
         
         if (ImGui::Button("Завершить")) {
-            while (!ga.isFinished()) {
-                ga.doOneStep();
-            }
+            ga.run();
+
             // Обновляем после завершения
-            idxPopulation = (int)ga.getPopulationHistory().size() - 1;
-            if (idxPopulation >= 0) updateFromHistory(idxPopulation);
+            currentGeneration = ga.getCurrentGeneration();
+            bestWeight = ga.getBestIndividual().weight;
+            bestFitness = ga.getBestIndividual().fitness;
+            selectedEdges = ga.getBestIndividual().edges;
             weightHistory = ga.getFitnessHistory();
+
             isAlgorithmFinished = true;
             isAlgorithmRunning = false;
+
             statusMessage = "Алгоритм завершён (поколений: " + std::to_string(currentGeneration) + ")";
         }
 
@@ -369,10 +334,6 @@ void DrawControlPanel(){
                     ga.setMaxGenerations(maxGenerations);
                     ga.setMaxStagnation(noImprovementLimit);
                     ga.initialize();
-
-                    // Обновляем индекс и состояние из истории (начинаем с нулевого поколения)
-                    idxPopulation = 0;
-                    updateFromHistory(0);  // обновляет bestWeight, bestFitness, selectedEdges, bestChromosome, currentGeneration
 
                     weightHistory = ga.getFitnessHistory();
 
@@ -435,10 +396,10 @@ void DrawVisualizationWindow()
     ImGui::Begin("Визуализация графа", nullptr, ImGuiWindowFlags_NoResize);
     int totalIndividuals;
     std::vector<Individual> population;
-    if (ga.getPopulationHistory().empty()){
+    if (ga.getCurrentPopulation().empty()) {
         totalIndividuals = 0;
     } else {
-        population = ga.getPopulationHistory()[idxPopulation];
+        population = ga.getCurrentPopulation();
     }
     totalIndividuals = (int)population.size();
     if (totalIndividuals > 0) {
