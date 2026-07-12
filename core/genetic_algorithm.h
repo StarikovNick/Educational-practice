@@ -8,6 +8,15 @@
 #include <limits>
 #include <utility>
 
+// Структура состояния шага алгоритма
+struct GenerationState
+{
+    std::vector<Individual> population;
+    Individual bestIndividual;
+    int generation;
+    int stagnationCounter;
+};
+
 // Основной класс алгоритма
 class GeneticAlgorithm
 {
@@ -27,12 +36,13 @@ public:
     const std::vector<Individual>& getCurrentPopulation() const;
     const Individual& getBestIndividual() const;
     const std::vector<double>& getFitnessHistory() const;
-    const std::vector<std::vector<Individual>>& getPopulationHistory() const;
+    const std::vector<GenerationState>& getGenerationHistory() const;
     int getCurrentGeneration() const;
 
     // Управление алгоритмом
     void initialize();   // создание начальной популяции
     bool doOneStep();    // выполнить одно поколение
+    bool stepBack();     // выполнить шаг назад
     void run();          // выполнить до завершения
 
     // Проверка критерия окончания
@@ -63,9 +73,9 @@ private:
     std::vector<Individual> population;
     Individual bestIndividual;
 
-    // История популяций и изменения лучшего fitness
+    // История алгоритма и изменения лучшего fitness
     std::vector<double> fitnessHistory;
-    std::vector<std::vector<Individual>> populationHistory;
+    std::vector<GenerationState> generationHistory;
 
     int generation = 0;
     int populationSize = 100;
