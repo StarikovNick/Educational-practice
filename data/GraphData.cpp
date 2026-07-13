@@ -38,6 +38,22 @@ bool loadFromFile(const std::string& filename, Graph& outGraph) {
     return true;
 }
 
+void generateRandomGraph_gui(int vertexCount, double density, Graph& outGraph) {
+    if (vertexCount < 2) vertexCount = 2;
+    if (density < 0.0) density = 0.0;
+    if (density > 1.0) density = 1.0;
+
+    int maxEdges = vertexCount * (vertexCount - 1) / 2;
+    int totalEdges = (int)(density * maxEdges);
+    // Минимально необходимое число рёбер для связности – дерево
+    int minEdges = vertexCount - 1;
+    if (totalEdges < minEdges) totalEdges = minEdges;
+    if (totalEdges > maxEdges) totalEdges = maxEdges;
+
+    int extraEdges = totalEdges - minEdges;
+    generateRandomGraph(vertexCount, extraEdges, outGraph);
+}
+
 void generateRandomGraph(int vertexCount, int extraEdges, Graph& outGraph) {
     // Проверка на минимальное число вершин
     if (vertexCount < 2) vertexCount = 2;

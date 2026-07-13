@@ -68,61 +68,6 @@ bool isGraphConnected() {
     return true;
 }
 
-void initTestTrees() {
-    testTrees.clear();
-
-    testTrees.push_back(std::vector<Edge>{ 
-        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{0, 2, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{0, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{0, 4, static_cast<double>(1 + std::rand() % 20)} 
-    });
-    testTrees.push_back(std::vector<Edge>{ 
-        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{1, 2, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{2, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
-    });
-    testTrees.push_back(std::vector<Edge>{ 
-        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{0, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{1, 2, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{2, 4, static_cast<double>(1 + std::rand() % 20)} 
-    });
-    testTrees.push_back(std::vector<Edge>{ 
-        Edge{0, 2, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{1, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{2, 4, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
-    });
-    testTrees.push_back(std::vector<Edge>{ 
-        Edge{0, 1, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{1, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{2, 3, static_cast<double>(1 + std::rand() % 20)}, 
-        Edge{3, 4, static_cast<double>(1 + std::rand() % 20)} 
-    });
-}
-
-void initTestGraph() {
-    currentGraph.vertexCount = 5;
-    currentGraph.edges.clear();
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(1, 20);
-    for (int i = 0; i < 5; ++i) {
-        for (int j = i + 1; j < 5; ++j) {
-            Edge e;
-            e.from = i;
-            e.to = j;
-            e.weight = static_cast<double>(dis(gen));
-            currentGraph.edges.push_back(e);
-        }
-    }
-    vertexCount = 5;
-    edgeCount = (int)currentGraph.edges.size();
-}
-
 void drawGraphVisualization() {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 canvasPos = ImGui::GetCursorScreenPos();
@@ -412,7 +357,7 @@ void DrawRandomInputWindow(){
         float minCoef = 2.0/randomVertexCount;
         ImGui::SliderFloat("Коэфициент полноты графа", &randomCoefFull, minCoef, 1.0f, "%.2f");
         if(ImGui::Button("Сохранить")) {
-            generateRandomGraphAuto(currentGraph);
+            generateRandomGraph_gui(randomVertexCount, randomCoefFull, currentGraph);
             prepareAlg();
             statusMessage = "Граф получен из случайной генерации и ГА инициализирован";
             showRandomInput = false;

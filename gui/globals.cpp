@@ -5,8 +5,6 @@
 
 GeneticAlgorithm ga;
 Graph currentGraph;
-std::vector<std::vector<Edge>> testTrees;
-int selectedTreeIndex = 0;
 std::vector<int> selectedEdges;
 int vertexCount = 0;
 int edgeCount = 0;

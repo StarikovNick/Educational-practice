@@ -29,3 +29,5 @@ void generateRandomGraphAuto(Graph& outGraph);
 // Возвращает true, если добавление успешно, иначе false.
 // В параметре message возвращается описание результата.
 bool addEdgeToGraph(Graph& graph, int from, int to, double weight, std::string& message);
+// Генерирует граф с заданным числом вершин и коэффициентом заполнения (плотностью)
+void generateRandomGraph_gui(int vertexCount, double density, Graph& outGraph);

@@ -8,8 +8,6 @@
 
 extern GeneticAlgorithm ga;
 extern Graph currentGraph;
-extern std::vector<std::vector<Edge>> testTrees;
-extern int selectedTreeIndex;
 extern std::vector<int> selectedEdges;
 extern int vertexCount;
 extern int edgeCount;
