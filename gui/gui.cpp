@@ -286,8 +286,6 @@ void DrawInfoPanel()
 
     ImGui::Text("Поколение: %d", currentGeneration);
     ImGui::Text("Популяция: %d", populationSize);
-    //ImGui::PushTextWrapPos(350);
-    //ImGui::Text("Лучшая особь в поколении: %s", bestChromosome.c_str());
     ImGui::Text("Лучший вес в поколении: %.2f", bestWeight);
     ImGui::Text("Лучшая МОД по весу: %.2f", bestFitness);
 
@@ -462,7 +460,6 @@ void DrawEvolutionPlot()
 
 void loadErrorTexture() {
     int width, height, channels;
-    // Попробуйте разные пути
     const char* paths[] = {
         "../png/error.jpg"
     };
